@@ -1,3 +1,7 @@
 <Solution>
+  <Project Path="AvailabilitySite.Application/AvailabilitySite.Application.csproj" Id="a263460e-fdf6-4bf5-a2cc-3b208b85303e" />
+  <Project Path="AvailabilitySite.Domain/AvailabilitySite.Domain.csproj" Id="259b2f05-7cb0-4a07-aa69-2888ce39af9a" />
+  <Project Path="AvailabilitySite.Infrastructure/AvailabilitySite.Infrastructure.csproj" Id="7a1aaeb7-d8be-4c60-9ec3-5b1541bf2e04" />
+  <Project Path="AvailabilitySite.Web/AvailabilitySite.Web.csproj" Id="7e55731e-d48a-414b-adcd-dce0fd4424dd" />
   <Project Path="BookingAPI/BookingAPI.csproj" />
 </Solution>
