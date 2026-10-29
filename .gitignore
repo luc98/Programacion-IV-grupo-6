@@ -1,0 +1,9 @@
+# Visual Studio and .NET generated files
+.vs/
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.suo
+*.userprefs
+*.gz
