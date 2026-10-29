@@ -4,4 +4,5 @@
   <Project Path="AvailabilitySite.Infrastructure/AvailabilitySite.Infrastructure.csproj" Id="7a1aaeb7-d8be-4c60-9ec3-5b1541bf2e04" />
   <Project Path="AvailabilitySite.Web/AvailabilitySite.Web.csproj" Id="7e55731e-d48a-414b-adcd-dce0fd4424dd" />
   <Project Path="BookingAPI/BookingAPI.csproj" />
+  <Project Path="AvailabilitySite.Application.Tests/AvailabilitySite.Application.Tests.csproj" Id="b9fcbf37-2b56-4b52-92c8-3cf1d3d32a7f" />
 </Solution>
