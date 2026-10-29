@@ -1,6 +1,7 @@
 namespace BookingAPI.BLL.DTOs
 {
-    // Este DTO va a ser la estructura de respuesta expuesta por el endpoint GET 
+    // Este DTO va a ser la estructura de respuesta expuesta por el endpoint
+    // GET http://localhost:5156/api/reservas/solicitudes/{solicitudId} 
     // para el seguimiento de una solicitud
     public class ReservaResultadoDto
     {
