@@ -18,35 +18,29 @@ namespace BookingAPI.DAL.Repositories
 
         public async Task<Asiento?> ObtenerAsientoPorIdAsync(Guid asientoId)
         {
+            // Debe mantener el tracking de EF Core activo para que funcione Version++
             return await _context.Asientos.FirstOrDefaultAsync(a => a.AsientoId == asientoId);
         }
 
-        // Regla del dominio: Un asiento esta ocupado mientras tenga una reserva Retenida o Confirmada.
-        // En cualquier otro estado (Rechazada o Vencida), el asiento vuelve a estar disponible.
         public async Task<bool> ExisteReservaActivaParaAsientoAsync(Guid asientoId)
         {
             DateTime ahoraUtc = DateTime.UtcNow;
 
+            // Regla del dominio: Un asiento esta ocupado mientras tenga una reserva Retenida o Confirmada.
+            // En cualquier otro estado (Rechazada o Vencida), el asiento vuelve a estar disponible.
             return await _context.Reservas.AnyAsync(r =>
                 r.AsientoId == asientoId &&
                 (r.Estado == EstadoReserva.Confirmada ||
                  (r.Estado == EstadoReserva.Retenida && r.FechaVencimientoUtc > ahoraUtc)));
         }
 
-        // Control de concurrencia
-        // Al retener un asiento libre, se incrementa 'asiento.Version' en +1 (se guarda el contexto con SaveChangesAsync).
-        // Al ser un ConcurrencyToken (definido en BookingDbContext) EF Core agrega un "WHERE Version = @versionOriginal" en el UPDATE de PostgreSQL.
-        // Si otra operacion modifico el asiento en paralelo, SaveChangesAsync lanza DbUpdateConcurrencyException.
-        public async Task GuardarReservaConcurrenteAsync(Reserva reserva)
+        public async Task GuardarReservaConcurrenteAsync(Reserva reserva, Asiento asiento)
         {
-            var asiento = await _context.Asientos
-                .FirstOrDefaultAsync(a => a.AsientoId == reserva.AsientoId);
-
-            if (asiento is not null)
-            {
-                asiento.Version++;
-            }
-
+            // Control de concurrencia
+            // Al retener un asiento libre, se incrementa 'asiento.Version' en +1 (se guarda el contexto con SaveChangesAsync).
+            // Al ser un ConcurrencyToken (definido en BookingDbContext) EF Core agrega un "WHERE Version = @versionOriginal" en el UPDATE de PostgreSQL
+            // Si otra operacion modifico el asiento en paralelo, SaveChangesAsync lanza DbUpdateConcurrencyException
+            asiento.Version++;
             await _context.Reservas.AddAsync(reserva);
             await _context.SaveChangesAsync();
         }
@@ -66,7 +60,7 @@ namespace BookingAPI.DAL.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Reserva?> ObtenerPorSolicitudIdAsync(Guid solicitudId)
+        public async Task<Reserva?> ObtenerReservaPorSolicitudIdAsync(Guid solicitudId)
         {
             return await _context.Reservas
                 .AsNoTracking()

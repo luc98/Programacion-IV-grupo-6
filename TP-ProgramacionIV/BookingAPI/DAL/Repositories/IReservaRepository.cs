@@ -10,10 +10,10 @@ namespace BookingAPI.DAL.Repositories
     {
         Task<Asiento?> ObtenerAsientoPorIdAsync(Guid asientoId);
         Task<bool> ExisteReservaActivaParaAsientoAsync(Guid asientoId);
-        Task GuardarReservaConcurrenteAsync(Reserva reserva);
+        Task GuardarReservaConcurrenteAsync(Reserva reserva, Asiento asiento);
         Task CrearReservaRechazadaAsync(Reserva reserva);
         Task ActualizarAsync(Reserva reserva);
-        Task<Reserva?> ObtenerPorSolicitudIdAsync(Guid solicitudId);
+        Task<Reserva?> ObtenerReservaPorSolicitudIdAsync(Guid solicitudId);
         Task<List<Reserva>> ObtenerReservasRetenidasVencidasAsync(DateTime ahoraUtc);
     }
 }
