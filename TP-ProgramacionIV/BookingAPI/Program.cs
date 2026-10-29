@@ -2,6 +2,7 @@ using BookingAPI.BLL.Interfaces;
 using BookingAPI.BLL.Services;
 using BookingAPI.DAL.Context;
 using BookingAPI.DAL.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,14 @@ builder.Services.AddDbContext<BookingDbContext>(options =>
 builder.Services.AddScoped<IReservaRepository, ReservaRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Authentication:Authority"];
+        options.Audience = builder.Configuration["Authentication:Audience"];
+        options.RequireHttpsMetadata = builder.Configuration.GetValue<bool>("Authentication:RequireHttpsMetadata");
+    });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -30,8 +39,7 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// Falta Authentication
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
