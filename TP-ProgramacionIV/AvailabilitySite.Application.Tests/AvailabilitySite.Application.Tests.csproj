@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AvailabilitySite.Application\AvailabilitySite.Application.csproj" />
     <ProjectReference Include="..\AvailabilitySite.Domain\AvailabilitySite.Domain.csproj" />
+    <ProjectReference Include="..\AvailabilitySite.Infrastructure\AvailabilitySite.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
