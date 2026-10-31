@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option csharp_namespace = "BookingAPI.BLL.Protos";
+
+package payment;
+
+// [JUSTIFICACIÓN TEÓRICA - COMUNICACIÓN SINCRÓNICA gRPC]
+// Se utiliza gRPC para la invocación directa y de baja latencia entre Booking REST API y Payment gRPC API.
+// Este contrato define la interfaz unívoca de intercambio tipado basada en Protocol Buffers (proto3).
+service PaymentService {
+  rpc ProcesarPago (ProcesarPagoRequest) returns (ProcesarPagoResponse);
+}
+
+message ProcesarPagoRequest {
+  string reserva_id = 1;
+  string solicitud_id = 2;
+  string usuario_id = 3;
+  double monto = 4;
+  string trace_id = 5;
+}
+
+message ProcesarPagoResponse {
+  bool exitoso = 1;
+  string transaccion_id = 2;
+  string mensaje_error = 3;
+  int32 codigo_respuesta = 4;
+}
