@@ -1,7 +1,19 @@
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
+using AvailabilitySite.Web.Composition;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.WebEncoders;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+// Antiforgery automático en todos los POST de formularios.
+builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+// Contratos ("API") + implementación elegida. Ver Composition/AvailabilityServiceRegistration.cs.
+builder.AddAvailability();
+
+// Emitir acentos y ñ tal cual (UTF-8) en lugar de entidades HTML numéricas.
+builder.Services.Configure<WebEncoderOptions>(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
 
 var app = builder.Build();
 
@@ -14,6 +26,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRequestLocalization("es-AR");
 app.UseRouting();
 
 app.UseAuthorization();
