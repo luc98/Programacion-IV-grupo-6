@@ -1,0 +1,55 @@
+@model MyRequestsViewModel
+@inject DateTimeDisplay Dates
+@{
+    ViewData["Title"] = "Mis solicitudes";
+}
+
+<h1>Mis solicitudes</h1>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p class="mb-2">@Model.ErrorMessage</p>
+        <a class="btn btn-sm btn-outline-danger" asp-action="Index">Reintentar</a>
+    </div>
+}
+else if (Model.Requests.Count == 0)
+{
+    <p class="alert alert-info">Todavía no enviaste solicitudes de reserva.</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Ver eventos</a>
+}
+else
+{
+    <p class="text-body-secondary">Abrí el seguimiento de cada solicitud para ver el detalle de su estado.</p>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <caption class="visually-hidden">Solicitudes enviadas, de la más reciente a la más antigua</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Enviada (@Dates.ZoneLabel)</th>
+                    <th scope="col">Evento</th>
+                    <th scope="col">Asiento</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col"><span class="visually-hidden">Acciones</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Requests)
+                {
+                    var status = StatusTexts.For(row.State);
+                    <tr>
+                        <td><time datetime="@DateTimeDisplay.Iso(row.Request.CreatedAt)">@Dates.DateTimeWithSeconds(row.Request.CreatedAt)</time></td>
+                        <td>@row.EventName</td>
+                        <td>@row.SeatLabel</td>
+                        <td><span class="status-badge status-badge--@status.CssModifier"><span aria-hidden="true">@status.Icon</span> @status.Label</span></td>
+                        <td>
+                            <a asp-action="Track" asp-route-id="@row.Request.RequestId">
+                                Ver seguimiento<span class="visually-hidden"> de la solicitud del asiento @row.SeatLabel</span>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

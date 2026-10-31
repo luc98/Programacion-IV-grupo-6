@@ -1,14 +1,24 @@
+using AvailabilitySite.Application.Events;
 using AvailabilitySite.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace AvailabilitySite.Web.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController(IListEventsUseCase listEvents) : AppController
     {
-        public IActionResult Index()
+        // Selección de evento (decisión de implementación: el enunciado no define cómo se llega a un evento).
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            return View();
+            var result = await listEvents.ExecuteAsync(cancellationToken);
+            if (!result.IsSuccess)
+                Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+
+            return View(new EventListViewModel
+            {
+                Events = result.IsSuccess ? result.Value!.OrderBy(e => e.StartsAt).ToList() : [],
+                ErrorMessage = result.Error?.Message,
+            });
         }
 
         public IActionResult Privacy()

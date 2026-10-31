@@ -1,0 +1,47 @@
+@model TrackingPageViewModel
+@{
+    ViewData["Title"] = "Seguimiento de solicitud";
+    var isTerminal = Model.Tracking?.IsTerminal == true;
+}
+
+<h1>Seguimiento de tu solicitud</h1>
+
+<div data-tracking data-poll-url="@Url.Action("TrackStatus", new { id = Model.RequestId })">
+    @* Región accesible: anuncia solo los cambios de estado, no cada consulta. *@
+    <div class="visually-hidden" role="status" aria-live="polite" data-tracking-live></div>
+
+    <div class="alert alert-warning @(Model.ErrorMessage is null ? "d-none" : "")" role="alert" data-tracking-alert>
+        @if (Model.ErrorMessage is not null)
+        {
+            <text>@Model.ErrorMessage Seguimos intentando; también podés actualizar manualmente.</text>
+        }
+    </div>
+
+    <div data-tracking-panel>
+        @if (Model.Tracking is not null)
+        {
+            <partial name="_TrackingPanel" model="Model.Tracking" />
+        }
+        else
+        {
+            <div class="tracking-panel" data-terminal="false">
+                <p class="lead">Todavía no pudimos obtener el estado de esta solicitud.</p>
+                <dl class="row tracking-details">
+                    <dt class="col-sm-4">N.º de solicitud</dt>
+                    <dd class="col-sm-8"><code class="identifier">@Model.RequestId</code></dd>
+                </dl>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+        <a class="btn btn-outline-secondary" asp-action="Track" asp-route-id="@Model.RequestId" data-tracking-refresh>Actualizar estado</a>
+        <span class="small text-body-secondary" data-tracking-mode>
+            @(isTerminal ? "Estado final: no hace falta seguir actualizando." : "El estado se actualiza automáticamente cada pocos segundos.")
+        </span>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/tracking.js" asp-append-version="true"></script>
+}

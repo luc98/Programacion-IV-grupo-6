@@ -1,0 +1,72 @@
+@model TrackingView
+@inject DateTimeDisplay Dates
+@{
+    // Fragmento compartido por la página de seguimiento y el endpoint de polling (TrackStatus).
+    var tracking = Model.Tracking;
+    var text = StatusTexts.For(Model.State);
+    var ev = Model.Event;
+}
+
+<div class="tracking-panel tracking-panel--@text.CssModifier"
+     data-state="@Model.State" data-state-label="@text.Label" data-terminal="@(Model.IsTerminal ? "true" : "false")">
+    <p class="status-badge status-badge--@text.CssModifier status-badge--lg">
+        <span aria-hidden="true">@text.Icon</span> @text.Label
+    </p>
+    <p class="lead">@text.Description</p>
+
+    @switch (Model.State)
+    {
+        case TrackingState.Pending:
+            <p>Esta página se actualiza sola. Cuando se procese tu solicitud vas a ver si el asiento quedó retenido o no.</p>
+            break;
+
+        case TrackingState.Held:
+            <p>Esta página se actualiza sola hasta que se conozca el resultado del pago.</p>
+            break;
+
+        case TrackingState.Rejected when tracking.RejectionReason is { } reason:
+            var rejection = StatusTexts.ForRejection(reason);
+            <p><strong>@rejection.ShortLabel.</strong> @rejection.Description</p>
+            break;
+
+        case TrackingState.Unknown:
+            <p>Estado informado por el sistema de reservas: <code>@tracking.BookingStatus</code>.</p>
+            break;
+    }
+
+    <dl class="row tracking-details">
+        <dt class="col-sm-4">Evento</dt>
+        <dd class="col-sm-8">@(ev?.Name ?? "Evento")</dd>
+        @if (ev is not null)
+        {
+            <dt class="col-sm-4">Fecha del evento</dt>
+            <dd class="col-sm-8"><time datetime="@DateTimeDisplay.Iso(ev.StartsAt)">@Dates.Long(ev.StartsAt)</time></dd>
+        }
+        <dt class="col-sm-4">Asiento</dt>
+        <dd class="col-sm-8">@Model.SeatLabel</dd>
+        <dt class="col-sm-4">N.º de solicitud</dt>
+        <dd class="col-sm-8"><code class="identifier">@tracking.RequestId</code></dd>
+        <dt class="col-sm-4">Estado consultado</dt>
+        <dd class="col-sm-8"><time datetime="@DateTimeDisplay.Iso(Model.RetrievedAt)">@Dates.Time(Model.RetrievedAt)</time> (@Dates.ZoneLabel)</dd>
+    </dl>
+
+    @if (Model.IsTerminal)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            @if (Model.State == TrackingState.Confirmed)
+            {
+                <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Ver otros eventos</a>
+            }
+            else if (Model.State == TrackingState.Rejected && StatusTexts.IsPaymentRejection(tracking.RejectionReason))
+            {
+                @* No existe una operación de reintento de cobro: se vuelve al flujo y se hace una solicitud nueva. *@
+                <a class="btn btn-primary" asp-controller="Events" asp-action="Availability" asp-route-id="@tracking.EventId" asp-route-seat="@tracking.SeatId">Volver al evento</a>
+            }
+            else
+            {
+                <a class="btn btn-primary" asp-controller="Events" asp-action="Availability" asp-route-id="@tracking.EventId">Elegir otro asiento</a>
+            }
+            <a class="btn btn-outline-secondary" asp-controller="Reservations" asp-action="Index">Ver mis solicitudes</a>
+        </div>
+    }
+</div>

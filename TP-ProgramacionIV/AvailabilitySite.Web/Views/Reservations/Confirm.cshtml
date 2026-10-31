@@ -1,0 +1,109 @@
+@model ConfirmReservationViewModel
+@inject DateTimeDisplay Dates
+@{
+    ViewData["Title"] = "Confirmar solicitud";
+    var ev = Model.Event;
+    var seat = Model.Seat;
+}
+
+<nav aria-label="Ruta de navegación">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Eventos</a></li>
+        <li class="breadcrumb-item">
+            <a asp-controller="Events" asp-action="Availability" asp-route-id="@Model.Input.EventId">@(ev?.Name ?? "Evento")</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Confirmar solicitud</li>
+    </ol>
+</nav>
+
+<h1>Confirmar solicitud de reserva</h1>
+
+@if (Model.Problem == SubmissionProblem.OutcomeUnknown)
+{
+    <div class="alert alert-warning" role="alert">
+        <h2 class="h5">No sabemos si tu solicitud fue recibida</h2>
+        <p>@Model.ProblemMessage No la reenviamos automáticamente.</p>
+        <p class="mb-0">
+            Podés <strong>reintentar el envío</strong>: usamos la misma solicitud, así que si ya había llegado no se va a duplicar.
+            También podés revisar <a asp-action="Index">tus solicitudes</a>.
+        </p>
+    </div>
+}
+else if (Model.Problem == SubmissionProblem.NotRegistered)
+{
+    <div class="alert alert-danger" role="alert">
+        <p class="mb-0">@Model.ProblemMessage Podés intentar de nuevo en unos momentos.</p>
+    </div>
+}
+
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+
+<section class="card mb-3" aria-labelledby="resumen">
+    <div class="card-body">
+        <h2 id="resumen" class="h5 card-title">Tu selección</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Evento</dt>
+            <dd class="col-sm-9">@(ev?.Name ?? "Evento")</dd>
+            @if (ev is not null)
+            {
+                <dt class="col-sm-3">Lugar y fecha</dt>
+                <dd class="col-sm-9">
+                    @ev.Venue — <time datetime="@DateTimeDisplay.Iso(ev.StartsAt)">@Dates.Long(ev.StartsAt)</time> (@Dates.ZoneLabel)
+                </dd>
+            }
+            <dt class="col-sm-3">Asiento</dt>
+            <dd class="col-sm-9">
+                @if (seat is not null)
+                {
+                    <text>@seat.Label</text>
+                }
+                else
+                {
+                    @Model.Input.SeatId
+                }
+            </dd>
+            @if (seat is not null && Model.CheckedAt is not null)
+            {
+                <dt class="col-sm-3">Estado actual</dt>
+                <dd class="col-sm-9">
+                    @{ var status = StatusTexts.ForSeat(seat.IsAvailable); }
+                    <span class="status-badge status-badge--@status.CssModifier"><span aria-hidden="true">@status.Icon</span> @status.Label</span>
+                    <span class="small text-body-secondary">(comprobado a las <time datetime="@DateTimeDisplay.Iso(Model.CheckedAt.Value)">@Dates.Time(Model.CheckedAt.Value)</time>)</span>
+                </dd>
+            }
+        </dl>
+    </div>
+</section>
+
+@if (Model.CanSubmit)
+{
+    <form asp-action="Confirm" method="post" data-prevent-double-submit>
+        <input type="hidden" name="EventId" value="@Model.Input.EventId" />
+        <input type="hidden" name="SeatId" value="@Model.Input.SeatId" />
+        @* Misma clave en todos los reintentos de esta operación lógica (idempotencia). *@
+        <input type="hidden" name="IdempotencyKey" value="@Model.Input.IdempotencyKey" />
+
+        <p>
+            Al enviar, registramos tu solicitud y te mostramos su seguimiento.
+            <strong>Enviar la solicitud no confirma la reserva:</strong> primero se procesa y, si el asiento sigue libre, se retiene mientras se cobra.
+        </p>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" data-submitting-text="Enviando solicitud…">
+                @(Model.Problem == SubmissionProblem.OutcomeUnknown ? "Reintentar envío de la misma solicitud" : "Enviar solicitud de reserva")
+            </button>
+            <a class="btn btn-outline-secondary" asp-controller="Events" asp-action="Availability" asp-route-id="@Model.Input.EventId">Elegir otro asiento</a>
+        </div>
+    </form>
+}
+else if (seat is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        Este asiento ya no está disponible. Elegí otro asiento para continuar.
+    </div>
+    <a class="btn btn-primary" asp-controller="Events" asp-action="Availability" asp-route-id="@Model.Input.EventId">Volver a la disponibilidad</a>
+}
+else
+{
+    <a class="btn btn-primary" asp-controller="Events" asp-action="Availability" asp-route-id="@Model.Input.EventId">Volver a la disponibilidad</a>
+}

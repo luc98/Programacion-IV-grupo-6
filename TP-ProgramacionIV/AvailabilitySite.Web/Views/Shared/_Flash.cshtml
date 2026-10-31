@@ -1,0 +1,16 @@
+@* Mensajes de un solo uso que sobreviven al redirect (Post/Redirect/Get). *@
+@{
+    var messages = new (string Key, string Css, string Role)[]
+    {
+        (Flash.Success, "alert-success", "status"),
+        (Flash.Info, "alert-info", "status"),
+        (Flash.Warning, "alert-warning", "alert"),
+    };
+}
+@foreach (var (key, css, role) in messages)
+{
+    if (TempData[key] is string text)
+    {
+        <div class="alert @css" role="@role">@text</div>
+    }
+}

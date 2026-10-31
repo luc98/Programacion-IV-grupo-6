@@ -1,0 +1,19 @@
+@model StatusPageViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<section class="status-page" aria-labelledby="status-title">
+    <h1 id="status-title" class="h2">@Model.Title</h1>
+    <p class="lead">@Model.Message</p>
+    <div class="d-flex flex-wrap gap-2">
+        @if (Model.RetryUrl is not null)
+        {
+            <a class="btn btn-primary" href="@Model.RetryUrl">Reintentar</a>
+        }
+        @foreach (var link in Model.Links)
+        {
+            <a class="btn btn-outline-secondary" href="@link.Url">@link.Text</a>
+        }
+    </div>
+</section>
