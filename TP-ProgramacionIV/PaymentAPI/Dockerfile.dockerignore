@@ -1,0 +1,6 @@
+# Docker usa este archivo porque está al lado del Dockerfile y se llama igual.
+# Las rutas son relativas al contexto (TP-ProgramacionIV).
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
