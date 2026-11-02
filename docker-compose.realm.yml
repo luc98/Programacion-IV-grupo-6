@@ -1,0 +1,10 @@
+services:
+  keycloak:
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - type: bind
+        source: ${KEYCLOAK_REALM_FILE:-./docker-keycloak/realm-export.json}
+        target: /opt/keycloak/data/import/realm.json
+        read_only: true
+        bind:
+          create_host_path: false
