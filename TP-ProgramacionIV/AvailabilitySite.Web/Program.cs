@@ -6,10 +6,23 @@ using Microsoft.Extensions.WebEncoders;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+}
+
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    options.ValidateScopes = context.HostingEnvironment.IsDevelopment();
+    options.ValidateOnBuild = context.HostingEnvironment.IsDevelopment();
+});
+
 // Add services to the container.
 // Antiforgery automático en todos los POST de formularios.
 builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
-// Contratos ("API") + implementación elegida. Ver Composition/AvailabilityServiceRegistration.cs.
+// Contratos de Application + implementación elegida (hoy mocks; las llamadas reales
+// AddAvailabilityInfrastructure / AddAvailabilityApplication están en Composition/AvailabilityServiceRegistration.cs).
 builder.AddAvailability();
 
 // Emitir acentos y ñ tal cual (UTF-8) en lugar de entidades HTML numéricas.
