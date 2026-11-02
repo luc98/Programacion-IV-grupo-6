@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>availability-site-web-grupo6</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

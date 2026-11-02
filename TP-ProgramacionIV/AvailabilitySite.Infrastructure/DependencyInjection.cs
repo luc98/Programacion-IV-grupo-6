@@ -1,6 +1,6 @@
 using AvailabilitySite.Application.Abstractions;
-using AvailabilitySite.Infrastructure.Availability;
 using AvailabilitySite.Infrastructure.Booking;
+using AvailabilitySite.Infrastructure.Persistence.MongoDb;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -13,7 +13,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddSingleton<IAvailabilityQueryRepository, InMemoryAvailabilityQueryRepository>();
+        // Persistencia real (MongoDB Atlas). Los mocks quedan solo en AddAvailabilityMock().
+        services.AddAvailabilityMongoDb(configuration);
 
         services.AddOptions<BookingOptions>()
             .Bind(configuration.GetSection(BookingOptions.SectionName))
