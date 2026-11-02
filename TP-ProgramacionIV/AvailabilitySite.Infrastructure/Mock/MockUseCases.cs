@@ -93,16 +93,15 @@ internal sealed class MockGetReservationRequestStatusUseCase(MockData data, ICur
             return Fail(ApplicationErrorType.Forbidden, "request_forbidden", "Esta solicitud pertenece a otro usuario.");
 
         return Task.FromResult(Result<ReservationTrackingDto>.Success(new ReservationTrackingDto(
-    request.RequestId,
-    request.EventId,
-    request.SeatId,
-    Guid.Empty,
-    ReservationRequestStatus.Pending,
-    request.BookingStatusAt(now),
-    request.RejectionReasonAt(now),
-    request.CreatedAt.UtcDateTime,
-    now.UtcDateTime
-)));
+            ReservaId: Guid.Empty,
+            RequestId: request.RequestId,
+            EventId: request.EventId,
+            SeatId: request.SeatId,
+            RequestStatus: ReservationRequestStatus.Pending,
+            BookingStatus: request.BookingStatusAt(now),
+            RejectionReason: request.RejectionReasonAt(now),
+            CreatedAtUtc: request.CreatedAt.UtcDateTime,
+            ExpirationAtUtc: now.UtcDateTime)));
     }
 
     private static Task<Result<ReservationTrackingDto>> Fail(ApplicationErrorType type, string code, string message) =>
