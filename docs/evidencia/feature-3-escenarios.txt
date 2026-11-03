@@ -1,0 +1,260 @@
+Evidencia de los escenarios de resiliencia de la feature 3
+==========================================================
+
+Fecha: 02/11/2026, hora argentina. Los logs de Payment están en UTC (3 horas más).
+Cómo se generó: `dotnet run -- --guion` en TP-ProgramacionIV/DemoResiliencia, contra Payment en
+Docker (docker-compose.payment.yml) con un Keycloak 26.8.1 real y el token real del cliente
+booking-api. El guion apaga, prende y enlentece Payment con docker compose. Se corrió en un
+entorno descartable, con el proyecto de compose `payment-e2e` y el realm exportado del repo
+(`reservas-realm`), por eso los contenedores se llaman payment-e2e-*.
+En la salida se acortaron las categorías de log: `PaymentGrpcGateway[0]` es
+`BookingAPI.BLL.Gateways.PaymentGrpcGateway[0]`, y lo mismo con ResilienciaPago y
+KeycloakTokenProvider. No se cambió nada más.
+
+Salida completa de la demo
+--------------------------
+
+
+===== 1. Happy path
+21:41:38.901 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=acf29065-a238-4401-81b5-10928ba1baa6 ReservaId=bf037715-39c8-44c2-b1b0-dd042b344a61 Monto=1500
+21:41:39.012 info: KeycloakTokenProvider[0] [KEYCLOAK] Token de booking-api renovado. Vence en 300 s
+21:41:39.159 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=acf29065-a238-4401-81b5-10928ba1baa6 Resultado=Aprobado DuracionMs=260
+===== => Confirmada en 261 ms 
+
+===== 2. Fondos insuficientes
+21:41:39.160 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=fdcbd672-5726-4bb7-866f-99b0cae25ae0 ReservaId=64ccb0a0-aac6-4742-a848-3ef1b0fea45b Monto=60000
+21:41:39.174 warn: PaymentGrpcGateway[0] [gRPC] TraceId=fdcbd672-5726-4bb7-866f-99b0cae25ae0 Payment rechazó el cobro: El monto supera el límite por cobro de 50000.00 (banco simulado)
+===== => Rechazada (PagoFallido) en 14 ms El monto supera el límite por cobro de 50000.00 (banco simulado)
+21:41:39.174 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=fdcbd672-5726-4bb7-866f-99b0cae25ae0 Resultado=PagoFallido DuracionMs=14
+
+$ docker compose ... stop payment
+ Container payment-e2e-payment-1 Stopping 
+ Container payment-e2e-payment-1 Stopped 
+
+===== 3. Payment caído: reintentos y circuito abierto
+21:41:39.475 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 ReservaId=80bc5418-139b-49fc-ab53-63e03fb35e56 Monto=1500
+21:41:39.487 warn: ResilienciaPago[0] [POLLY] TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 Reintento 1 a Payment en 519 ms. Causa: gRPC Unavailable
+21:41:40.009 fail: ResilienciaPago[0] [POLLY] TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:41:40.010 warn: ResilienciaPago[0] [POLLY] TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 Reintento 2 a Payment en 235 ms. Causa: gRPC Unavailable
+21:41:40.247 warn: PaymentGrpcGateway[0] [POLLY] TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 Circuito abierto: no se hacen más intentos a Payment
+===== => Rechazada (PagoNoDisponible) en 772 ms Payment no está disponible (circuito abierto)
+21:41:40.247 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=2d3a08e3-5a49-4b85-9271-42c2c72eb3b3 Resultado=PagoNoDisponible DuracionMs=772
+
+===== 4. Circuito abierto: rechazo sin llamar a Payment
+21:41:40.247 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=f1343858-3760-4690-bf98-f289c0b24b81 ReservaId=c5ef4cbc-fdb8-4db1-a8a1-625d58bd7a6c Monto=1500
+21:41:40.247 warn: PaymentGrpcGateway[0] [POLLY] TraceId=f1343858-3760-4690-bf98-f289c0b24b81 Circuito abierto: no se hacen más intentos a Payment
+21:41:40.247 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=f1343858-3760-4690-bf98-f289c0b24b81 Resultado=PagoNoDisponible DuracionMs=0
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+
+$ docker compose ... start payment
+ Container payment-e2e-payment-db-1 Waiting 
+ Container payment-e2e-payment-db-1 Healthy 
+ Container payment-e2e-payment-1 Starting 
+ Container payment-e2e-payment-1 Started 
+
+(espero 8 s a que termine el corte de 15 s)
+
+===== 5. Pasó el corte: el circuito prueba y se cierra
+21:41:55.475 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=ac197c07-385e-476c-ba57-8ea0c59c35c3 ReservaId=1ef64b2e-6f13-49e4-98dc-b4ac76a458e7 Monto=1500
+21:41:55.476 warn: ResilienciaPago[0] [POLLY] TraceId=ac197c07-385e-476c-ba57-8ea0c59c35c3 Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:41:56.134 info: ResilienciaPago[0] [POLLY] TraceId=ac197c07-385e-476c-ba57-8ea0c59c35c3 Circuito CERRADO: Payment volvió a responder
+===== => Confirmada en 659 ms 
+21:41:56.135 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=ac197c07-385e-476c-ba57-8ea0c59c35c3 Resultado=Aprobado DuracionMs=659
+
+===== 5b. Circuito cerrado
+21:41:56.135 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=5bbc2ac4-141f-4ce0-982c-39682e0594ef ReservaId=bd5154fb-c2d4-404c-90af-daf6aff70240 Monto=1500
+===== => Confirmada en 49 ms 
+21:41:56.184 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=5bbc2ac4-141f-4ce0-982c-39682e0594ef Resultado=Aprobado DuracionMs=49
+
+$ PAYMENT_RETARDO_MS=3000 docker compose ... up -d payment
+ Container payment-e2e-payment-db-1 Running 
+ Container payment-e2e-payment-1 Recreate 
+ Container payment-e2e-payment-1 Recreated 
+ Container payment-e2e-payment-db-1 Waiting 
+ Container payment-e2e-payment-db-1 Healthy 
+ Container payment-e2e-payment-1 Starting 
+ Container payment-e2e-payment-1 Started 
+
+===== 6. Payment lento (3 s): intentos cortados a los 2 s
+21:42:03.259 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=24a88960-72e3-47be-b369-b664c8e1146b ReservaId=a300816f-cfec-4ff9-be67-efac04cee122 Monto=1500
+21:42:05.273 warn: ResilienciaPago[0] [POLLY] TraceId=24a88960-72e3-47be-b369-b664c8e1146b Reintento 1 a Payment en 556 ms. Causa: timeout del intento
+21:42:07.833 fail: ResilienciaPago[0] [POLLY] TraceId=24a88960-72e3-47be-b369-b664c8e1146b Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:42:07.833 warn: ResilienciaPago[0] [POLLY] TraceId=24a88960-72e3-47be-b369-b664c8e1146b Reintento 2 a Payment en 141 ms. Causa: timeout del intento
+21:42:07.975 warn: PaymentGrpcGateway[0] [POLLY] TraceId=24a88960-72e3-47be-b369-b664c8e1146b Circuito abierto: no se hacen más intentos a Payment
+===== => Rechazada (PagoNoDisponible) en 4716 ms Payment no está disponible (circuito abierto)
+21:42:07.975 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=24a88960-72e3-47be-b369-b664c8e1146b Resultado=PagoNoDisponible DuracionMs=4716
+
+$ docker compose ... up -d payment
+ Container payment-e2e-payment-db-1 Running 
+ Container payment-e2e-payment-1 Recreate 
+ Container payment-e2e-payment-1 Recreated 
+ Container payment-e2e-payment-db-1 Waiting 
+ Container payment-e2e-payment-db-1 Healthy 
+ Container payment-e2e-payment-1 Starting 
+ Container payment-e2e-payment-1 Started 
+
+(espero 16 s a que termine el corte del escenario 6)
+
+===== 7a. Payment normal otra vez
+21:42:31.152 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30 ReservaId=1735ae18-21b5-422b-83de-64f76575dd22 Monto=1500
+21:42:31.152 warn: ResilienciaPago[0] [POLLY] TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30 Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:42:31.790 info: ResilienciaPago[0] [POLLY] TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30 Circuito CERRADO: Payment volvió a responder
+21:42:31.790 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30 Resultado=Aprobado DuracionMs=638
+===== => Confirmada en 638 ms 
+
+$ docker compose ... stop payment
+ Container payment-e2e-payment-1 Stopping 
+ Container payment-e2e-payment-1 Stopped 
+
+===== 7b. Comienza una caída larga
+21:42:32.086 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 ReservaId=7b446c6b-5245-41df-b064-aa45318f0d3b Monto=1500
+21:42:32.087 warn: ResilienciaPago[0] [POLLY] TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 Reintento 1 a Payment en 239 ms. Causa: gRPC Unavailable
+21:42:32.326 warn: ResilienciaPago[0] [POLLY] TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 Reintento 2 a Payment en 454 ms. Causa: gRPC Unavailable
+21:42:32.781 fail: ResilienciaPago[0] [POLLY] TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:42:32.782 fail: PaymentGrpcGateway[0] [gRPC] TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 La llamada a Payment falló con Unavailable: Error connecting to subchannel.
+===== => Rechazada (PagoNoDisponible) en 695 ms Error de comunicación con Payment (Unavailable)
+21:42:32.782 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=5ffefe39-c0a9-4a5b-98c6-3976446a2f05 Resultado=PagoNoDisponible DuracionMs=695
+
+===== 7c. Durante la caída, a los 10 s
+21:42:42.783 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=25ce0265-68ad-4836-b5f8-b0e6461e2095 ReservaId=3a0c15d0-8430-4c98-9468-855674e014cd Monto=1500
+21:42:42.783 warn: PaymentGrpcGateway[0] [POLLY] TraceId=25ce0265-68ad-4836-b5f8-b0e6461e2095 Circuito abierto: no se hacen más intentos a Payment
+21:42:42.783 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=25ce0265-68ad-4836-b5f8-b0e6461e2095 Resultado=PagoNoDisponible DuracionMs=0
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+
+===== 7c. Durante la caída, a los 20 s
+21:42:52.784 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 ReservaId=07ad3c8d-9374-49ff-9740-4cc9a3effe93 Monto=1500
+21:42:52.784 warn: ResilienciaPago[0] [POLLY] TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:42:52.784 fail: ResilienciaPago[0] [POLLY] TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:42:52.784 warn: ResilienciaPago[0] [POLLY] TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 Reintento 1 a Payment en 95 ms. Causa: gRPC Unavailable
+21:42:52.880 warn: PaymentGrpcGateway[0] [POLLY] TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 Circuito abierto: no se hacen más intentos a Payment
+21:42:52.880 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=61a45c19-8ef7-43a8-b91c-0edffd299e81 Resultado=PagoNoDisponible DuracionMs=96
+===== => Rechazada (PagoNoDisponible) en 96 ms Payment no está disponible (circuito abierto)
+
+===== 7c. Durante la caída, a los 30 s
+21:43:02.881 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=73e1713f-b20c-4133-8345-743d9842de36 ReservaId=8be122ac-5231-4aea-a413-1731ab9551a4 Monto=1500
+21:43:02.881 warn: PaymentGrpcGateway[0] [POLLY] TraceId=73e1713f-b20c-4133-8345-743d9842de36 Circuito abierto: no se hacen más intentos a Payment
+21:43:02.881 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=73e1713f-b20c-4133-8345-743d9842de36 Resultado=PagoNoDisponible DuracionMs=0
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+
+===== 7c. Durante la caída, a los 40 s
+21:43:12.881 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 ReservaId=eedbd3d8-7f0c-42e3-b1e8-1e5f4c246575 Monto=1500
+21:43:12.881 warn: ResilienciaPago[0] [POLLY] TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:43:12.882 fail: ResilienciaPago[0] [POLLY] TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:43:12.882 warn: ResilienciaPago[0] [POLLY] TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 Reintento 1 a Payment en 516 ms. Causa: gRPC Unavailable
+21:43:13.398 warn: PaymentGrpcGateway[0] [POLLY] TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 Circuito abierto: no se hacen más intentos a Payment
+===== => Rechazada (PagoNoDisponible) en 517 ms Payment no está disponible (circuito abierto)
+21:43:13.398 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=ab00c2e5-db98-460d-9bb0-746020b0a082 Resultado=PagoNoDisponible DuracionMs=517
+
+===== 7c. Durante la caída, a los 51 s
+21:43:23.398 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=1209752b-c5db-43c6-b11d-1bf69bf78751 ReservaId=00092ad1-5169-44cb-a626-73f0677a16d9 Monto=1500
+21:43:23.399 warn: PaymentGrpcGateway[0] [POLLY] TraceId=1209752b-c5db-43c6-b11d-1bf69bf78751 Circuito abierto: no se hacen más intentos a Payment
+21:43:23.399 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=1209752b-c5db-43c6-b11d-1bf69bf78751 Resultado=PagoNoDisponible DuracionMs=0
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+
+===== 7c. Durante la caída, a los 61 s
+21:43:33.400 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b ReservaId=103db3b0-5822-4bf7-98d4-28a5ab362ec0 Monto=1500
+21:43:33.400 warn: ResilienciaPago[0] [POLLY] TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:43:33.400 fail: ResilienciaPago[0] [POLLY] TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llamarlo durante 15 s
+21:43:33.400 warn: ResilienciaPago[0] [POLLY] TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b Reintento 1 a Payment en 657 ms. Causa: gRPC Unavailable
+21:43:34.058 warn: PaymentGrpcGateway[0] [POLLY] TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b Circuito abierto: no se hacen más intentos a Payment
+21:43:34.058 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=e50c9ff6-b543-4a12-9cb8-e1074c20474b Resultado=PagoNoDisponible DuracionMs=658
+===== => Rechazada (PagoNoDisponible) en 658 ms Payment no está disponible (circuito abierto)
+
+$ docker compose ... start payment
+ Container payment-e2e-payment-db-1 Waiting 
+ Container payment-e2e-payment-db-1 Healthy 
+ Container payment-e2e-payment-1 Starting 
+ Container payment-e2e-payment-1 Started 
+
+===== 7d. Payment levantado hace 7 s
+21:43:40.874 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=6ab9e589-abd1-493c-948c-0711d98cb62f ReservaId=6b97fee5-4828-4ef5-a3cb-094c6f5dda82 Monto=1500
+21:43:40.875 warn: PaymentGrpcGateway[0] [POLLY] TraceId=6ab9e589-abd1-493c-948c-0711d98cb62f Circuito abierto: no se hacen más intentos a Payment
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+21:43:40.875 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=6ab9e589-abd1-493c-948c-0711d98cb62f Resultado=PagoNoDisponible DuracionMs=0
+
+===== 7d. Payment levantado hace 9 s
+21:43:42.874 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=ca8bb8ec-6f7c-4028-b508-5e3402d8512e ReservaId=4fab3aed-7680-47af-aa53-f28f2bfe5e0f Monto=1500
+21:43:42.875 warn: PaymentGrpcGateway[0] [POLLY] TraceId=ca8bb8ec-6f7c-4028-b508-5e3402d8512e Circuito abierto: no se hacen más intentos a Payment
+21:43:42.875 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=ca8bb8ec-6f7c-4028-b508-5e3402d8512e Resultado=PagoNoDisponible DuracionMs=0
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+
+===== 7d. Payment levantado hace 11 s
+21:43:44.876 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=70e7f278-53de-46ea-bdff-d4e655b3ca80 ReservaId=8203c46c-4cee-4a99-bac7-bcee3a4fa185 Monto=1500
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+21:43:44.876 warn: PaymentGrpcGateway[0] [POLLY] TraceId=70e7f278-53de-46ea-bdff-d4e655b3ca80 Circuito abierto: no se hacen más intentos a Payment
+21:43:44.876 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=70e7f278-53de-46ea-bdff-d4e655b3ca80 Resultado=PagoNoDisponible DuracionMs=0
+
+===== 7d. Payment levantado hace 13 s
+21:43:46.877 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=1b2d3404-1948-4ead-9012-fed1648699ff ReservaId=930aeb8e-e9d7-4e47-88bc-bfad1ec1368d Monto=1500
+===== => Rechazada (PagoNoDisponible) en 0 ms Payment no está disponible (circuito abierto)
+21:43:46.877 warn: PaymentGrpcGateway[0] [POLLY] TraceId=1b2d3404-1948-4ead-9012-fed1648699ff Circuito abierto: no se hacen más intentos a Payment
+21:43:46.877 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=1b2d3404-1948-4ead-9012-fed1648699ff Resultado=PagoNoDisponible DuracionMs=0
+
+===== 7d. Payment levantado hace 15 s
+21:43:48.877 info: PaymentGrpcGateway[0] Inicio CobrarReserva TraceId=69f956e8-b69e-40db-97e2-3a92a4369b9a ReservaId=2bac20a6-5739-451b-a1b4-3824df417697 Monto=1500
+21:43:48.878 warn: ResilienciaPago[0] [POLLY] TraceId=69f956e8-b69e-40db-97e2-3a92a4369b9a Circuito SEMIABIERTO: se prueba una llamada a Payment
+21:43:49.526 info: ResilienciaPago[0] [POLLY] TraceId=69f956e8-b69e-40db-97e2-3a92a4369b9a Circuito CERRADO: Payment volvió a responder
+===== => Confirmada en 648 ms 
+21:43:49.526 info: PaymentGrpcGateway[0] Fin CobrarReserva TraceId=69f956e8-b69e-40db-97e2-3a92a4369b9a Resultado=Aprobado DuracionMs=648
+
+===== Primera reserva confirmada 15,5 s después de levantar Payment
+
+===== Resumen
+1. Happy path                                                  Confirmada                          261 ms
+2. Fondos insuficientes                                        Rechazada (PagoFallido)              14 ms
+3. Payment caído: reintentos y circuito abierto                Rechazada (PagoNoDisponible)        772 ms
+4. Circuito abierto: rechazo sin llamar a Payment              Rechazada (PagoNoDisponible)          0 ms
+5. Pasó el corte: el circuito prueba y se cierra               Confirmada                          659 ms
+5b. Circuito cerrado                                           Confirmada                           49 ms
+6. Payment lento (3 s): intentos cortados a los 2 s            Rechazada (PagoNoDisponible)       4716 ms
+7a. Payment normal otra vez                                    Confirmada                          638 ms
+7b. Comienza una caída larga                                   Rechazada (PagoNoDisponible)        695 ms
+7c. Durante la caída, a los 10 s                               Rechazada (PagoNoDisponible)          0 ms
+7c. Durante la caída, a los 20 s                               Rechazada (PagoNoDisponible)         96 ms
+7c. Durante la caída, a los 30 s                               Rechazada (PagoNoDisponible)          0 ms
+7c. Durante la caída, a los 40 s                               Rechazada (PagoNoDisponible)        517 ms
+7c. Durante la caída, a los 51 s                               Rechazada (PagoNoDisponible)          0 ms
+7c. Durante la caída, a los 61 s                               Rechazada (PagoNoDisponible)        658 ms
+7d. Payment levantado hace 7 s                                 Rechazada (PagoNoDisponible)          0 ms
+7d. Payment levantado hace 9 s                                 Rechazada (PagoNoDisponible)          0 ms
+7d. Payment levantado hace 11 s                                Rechazada (PagoNoDisponible)          0 ms
+7d. Payment levantado hace 13 s                                Rechazada (PagoNoDisponible)          0 ms
+7d. Payment levantado hace 15 s                                Confirmada                          648 ms
+
+Logs de Payment para el cobro del escenario 7a (TraceId d42f52dd-8266-4f62-9490-1f398a50ff30)
+-----------------------------------------------------------------------------------------
+
+00:42:31 INF [PaymentAPI] [TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30] Inicio /payment.v1.PaymentService/ProcesarPago
+00:42:31 INF [PaymentAPI] [TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30] Pago f37d92a9-8125-4adb-925b-64b37818d8ab registrado para la reserva 1735ae18-21b5-422b-83de-64f76575dd22: Aprobado
+00:42:31 INF [PaymentAPI] [TraceId=d42f52dd-8266-4f62-9490-1f398a50ff30] Fin /payment.v1.PaymentService/ProcesarPago Resultado=OK DuracionMs=376
+
+
+Pagos guardados en la base de Payment para cada cobro del guion
+----------------------------------------------------------------
+
+Consulta a la tabla "Pagos" de PaymentDb, buscando por el TraceId de cada cobro (es el
+SolicitudId que manda Booking y que Payment guarda en cada pago). Solo hay pagos de los cobros
+que Payment llegó a procesar. Los intentos cortados del escenario 6 y los cobros con Payment
+caído no dejaron ninguno.
+
+Escenario                                                TraceId                               Pago guardado en Payment
+1. Happy path                                            acf29065-a238-4401-81b5-10928ba1baa6  Aprobado, 150000 centavos
+2. Fondos insuficientes                                  fdcbd672-5726-4bb7-866f-99b0cae25ae0  RechazadoFondosInsuficientes, 6000000 centavos
+3. Payment caído: reintentos y circuito abierto          2d3a08e3-5a49-4b85-9271-42c2c72eb3b3  ninguno
+4. Circuito abierto: rechazo sin llamar a Payment        f1343858-3760-4690-bf98-f289c0b24b81  ninguno
+5. Pasó el corte: el circuito prueba y se cierra         ac197c07-385e-476c-ba57-8ea0c59c35c3  Aprobado, 150000 centavos
+5b. Circuito cerrado                                     5bbc2ac4-141f-4ce0-982c-39682e0594ef  Aprobado, 150000 centavos
+6. Payment lento (3 s): intentos cortados a los 2 s      24a88960-72e3-47be-b369-b664c8e1146b  ninguno
+7a. Payment normal otra vez                              d42f52dd-8266-4f62-9490-1f398a50ff30  Aprobado, 150000 centavos
+7b. Comienza una caída larga                             5ffefe39-c0a9-4a5b-98c6-3976446a2f05  ninguno
+7c. Durante la caída, a los 10 s                         25ce0265-68ad-4836-b5f8-b0e6461e2095  ninguno
+7c. Durante la caída, a los 20 s                         61a45c19-8ef7-43a8-b91c-0edffd299e81  ninguno
+7c. Durante la caída, a los 30 s                         73e1713f-b20c-4133-8345-743d9842de36  ninguno
+7c. Durante la caída, a los 40 s                         ab00c2e5-db98-460d-9bb0-746020b0a082  ninguno
+7c. Durante la caída, a los 51 s                         1209752b-c5db-43c6-b11d-1bf69bf78751  ninguno
+7c. Durante la caída, a los 61 s                         e50c9ff6-b543-4a12-9cb8-e1074c20474b  ninguno
+7d. Payment levantado hace 7 s                           6ab9e589-abd1-493c-948c-0711d98cb62f  ninguno
+7d. Payment levantado hace 9 s                           ca8bb8ec-6f7c-4028-b508-5e3402d8512e  ninguno
+7d. Payment levantado hace 11 s                          70e7f278-53de-46ea-bdff-d4e655b3ca80  ninguno
+7d. Payment levantado hace 13 s                          1b2d3404-1948-4ead-9012-fed1648699ff  ninguno
+7d. Payment levantado hace 15 s                          69f956e8-b69e-40db-97e2-3a92a4369b9a  Aprobado, 150000 centavos
