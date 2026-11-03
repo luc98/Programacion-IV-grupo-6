@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="BookingAPI.Tests/BookingAPI.Tests.csproj" />
   <Project Path="BookingAPI/BookingAPI.csproj" />
+  <Project Path="DemoResiliencia/DemoResiliencia.csproj" />
   <Project Path="PaymentAPI.Tests/PaymentAPI.Tests.csproj" />
   <Project Path="PaymentAPI/PaymentAPI.csproj" />
 </Solution>
