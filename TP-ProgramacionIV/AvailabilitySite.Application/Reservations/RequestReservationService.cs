@@ -6,7 +6,7 @@ namespace AvailabilitySite.Application.Reservations;
 public sealed class RequestReservationService(
     ICurrentUserContext currentUserContext,
     IReservationRequestRepository reservationRequestRepository,
-    IReservationRequestPublisher reservationRequestPublisher)
+    IAvailabilityQueryRepository availabilityQueryRepository)
     : IRequestReservationUseCase
 {
     public async Task<Result<ReservationRequestReceiptDto>> ExecuteAsync(
@@ -49,6 +49,16 @@ public sealed class RequestReservationService(
                 ToReceipt(existing, isReplay: true));
         }
 
+        var seats = await availabilityQueryRepository.GetSeatsAsync(request.EventId, cancellationToken);
+        if (seats.All(seat => seat.Id != request.SeatId))
+        {
+            return Result<ReservationRequestReceiptDto>.Failure(
+                new ApplicationError(
+                    ApplicationErrorType.NotFound,
+                    "seat_not_found",
+                    "El asiento no existe para el evento solicitado."));
+        }
+
         var newRequest = new ReservationRequestRecord(
             Guid.NewGuid(),
             request.EventId,
@@ -58,33 +68,23 @@ public sealed class RequestReservationService(
             DateTimeOffset.UtcNow,
             ReservationRequestStatus.Pending);
 
-        await reservationRequestRepository.AddAsync(newRequest, cancellationToken);
+        var persisted = await reservationRequestRepository.AddOrGetExistingAsync(newRequest, cancellationToken);
+        if (!persisted.Created)
+        {
+            if (persisted.Request.EventId != request.EventId || persisted.Request.SeatId != request.SeatId)
+            {
+                return Result<ReservationRequestReceiptDto>.Failure(
+                    new ApplicationError(
+                        ApplicationErrorType.Validation,
+                        "idempotency_key_conflict",
+                        "La clave de idempotencia ya fue utilizada para otra solicitud."));
+            }
 
-        var message = new ReservationRequestedMessage(
-            newRequest.RequestId,
-            newRequest.EventId,
-            newRequest.SeatId,
-            newRequest.UserId);
-
-        try
-        {
-            await reservationRequestPublisher.PublishAsync(message, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            // La persistencia y el broker no forman una transacción aquí.
-            // Un Outbox será necesario para garantizar publicación eventual.
-            return Result<ReservationRequestReceiptDto>.Failure(
-                new ApplicationError(
-                    ApplicationErrorType.OutcomeUnknown,
-                    "reservation_publication_unknown",
-                    "No se pudo determinar el resultado de la publicación de la solicitud."));
+            return Result<ReservationRequestReceiptDto>.Success(ToReceipt(persisted.Request, isReplay: true));
         }
 
+        // AddAsync persiste la solicitud y su mensaje Outbox en una transacción.
+        // La publicación la realiza posteriormente el Worker de Outbox.
         return Result<ReservationRequestReceiptDto>.Success(
             ToReceipt(newRequest, isReplay: false));
     }
