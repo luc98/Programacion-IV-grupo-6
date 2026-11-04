@@ -25,6 +25,8 @@ public interface IOutboxRepository
     // Devuelve false si el mensaje ya no está reclamado por este proceso (por ejemplo, venció el lease).
     Task<bool> MarkPublishedAsync(Guid messageId, string processorId, CancellationToken cancellationToken = default);
 
+    Task<bool> RenewLeaseAsync(Guid messageId, string processorId, TimeSpan leaseDuration, CancellationToken cancellationToken = default);
+
     // Registra el error, suma un intento y programa el reintento; al llegar a MaxAttempts queda en Failed.
     Task<OutboxFailureResult> MarkFailedAsync(Guid messageId, string processorId, string error, CancellationToken cancellationToken = default);
 

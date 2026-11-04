@@ -2,6 +2,7 @@ using System.Text.Json;
 using AvailabilitySite.Application.Abstractions;
 using AvailabilitySite.Application.Common;
 using AvailabilitySite.Application.Reservations;
+using AvailabilitySite.Domain.Entities;
 using AvailabilitySite.Infrastructure.Outbox;
 using AvailabilitySite.Infrastructure.Persistence;
 using AvailabilitySite.Infrastructure.Persistence.MongoDb;
@@ -165,8 +166,8 @@ public sealed class MongoReservationRequestRepositoryTests(MongoTestFixture fixt
     public async Task RequestReservationService_RepeatedRequest_ReturnsOriginalRequestAsReplay()
     {
         await using var db = await fixture.CreateDatabaseAsync();
-        var service = NewService(db.Requests);
         var dto = new CreateReservationRequestDto(Guid.NewGuid(), Guid.NewGuid(), "key-1");
+        var service = NewService(db.Requests, dto.SeatId);
 
         var first = await service.ExecuteAsync(dto);
         var second = await service.ExecuteAsync(dto);
@@ -183,9 +184,10 @@ public sealed class MongoReservationRequestRepositoryTests(MongoTestFixture fixt
     public async Task RequestReservationService_SameKeyWithDifferentSeat_ReturnsConflict()
     {
         await using var db = await fixture.CreateDatabaseAsync();
-        var service = NewService(db.Requests);
         var eventId = Guid.NewGuid();
-        await service.ExecuteAsync(new CreateReservationRequestDto(eventId, Guid.NewGuid(), "key-1"));
+        var firstRequest = new CreateReservationRequestDto(eventId, Guid.NewGuid(), "key-1");
+        var service = NewService(db.Requests, firstRequest.SeatId);
+        await service.ExecuteAsync(firstRequest);
 
         var result = await service.ExecuteAsync(new CreateReservationRequestDto(eventId, Guid.NewGuid(), "key-1"));
 
@@ -209,8 +211,8 @@ public sealed class MongoReservationRequestRepositoryTests(MongoTestFixture fixt
             Guid.NewGuid(), eventId ?? Guid.NewGuid(), seatId ?? Guid.NewGuid(), userId, idempotencyKey, at, ReservationRequestStatus.Pending);
     }
 
-    private static RequestReservationService NewService(IReservationRequestRepository repository) =>
-        new(new TestUser("user-1"), repository, new NoOpPublisher());
+    private static RequestReservationService NewService(IReservationRequestRepository repository, Guid seatId) =>
+        new(new TestUser("user-1"), repository, new FixedSeatAvailability(seatId));
 
     private sealed class TestUser(string userId) : ICurrentUserContext
     {
@@ -219,10 +221,10 @@ public sealed class MongoReservationRequestRepositoryTests(MongoTestFixture fixt
         public string? UserId => userId;
     }
 
-    // El publisher real lo implementa el backend principal; acá no se publica nada.
-    private sealed class NoOpPublisher : IReservationRequestPublisher
+    private sealed class FixedSeatAvailability(Guid seatId) : IAvailabilityQueryRepository
     {
-        public Task PublishAsync(ReservationRequestedMessage message, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public Task<IReadOnlyList<Seat>> GetSeatsAsync(Guid eventId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Seat>>([new Seat { Id = seatId, EventId = eventId }]);
     }
 }
+

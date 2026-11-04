@@ -1,8 +1,11 @@
-using System.Text.Encodings.Web;
-using System.Text.Unicode;
-using AvailabilitySite.Web.Composition;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.WebEncoders;
+using AvailabilitySite.Application;
+using AvailabilitySite.Application.Abstractions;
+using AvailabilitySite.Infrastructure;
+using AvailabilitySite.Web.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,14 +22,56 @@ builder.Host.UseDefaultServiceProvider((context, options) =>
 });
 
 // Add services to the container.
-// Antiforgery automático en todos los POST de formularios.
-builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
-// Contratos de Application + implementación elegida (hoy mocks; las llamadas reales
-// AddAvailabilityInfrastructure / AddAvailabilityApplication están en Composition/AvailabilityServiceRegistration.cs).
-builder.AddAvailability();
+builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserContext, HttpContextCurrentUserContext>();
 
-// Emitir acentos y ñ tal cual (UTF-8) en lugar de entidades HTML numéricas.
-builder.Services.Configure<WebEncoderOptions>(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
+builder.Services.AddOptions<KeycloakOptions>()
+    .Bind(builder.Configuration.GetSection(KeycloakOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.Authority, UriKind.Absolute, out _),
+        "Keycloak:Authority debe ser una URL absoluta.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ClientId),
+        "Keycloak:ClientId es obligatorio.")
+    .ValidateOnStart();
+
+var keycloak = builder.Configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
+    ?? new KeycloakOptions();
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+    })
+    .AddOpenIdConnect(options =>
+    {
+        options.Authority = keycloak.Authority;
+        options.ClientId = keycloak.ClientId;
+        options.CallbackPath = keycloak.CallbackPath;
+        options.SignedOutCallbackPath = keycloak.SignedOutCallbackPath;
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.UsePkce = true;
+        options.MapInboundClaims = false;
+        options.SaveTokens = false;
+        options.GetClaimsFromUserInfoEndpoint = false;
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = keycloak.Authority
+        };
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+    });
+
+builder.Services.AddAvailabilityInfrastructure(builder.Configuration);
+builder.Services.AddAvailabilityApplication();
 
 var app = builder.Build();
 
@@ -42,6 +87,7 @@ app.UseHttpsRedirection();
 app.UseRequestLocalization("es-AR");
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

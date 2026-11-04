@@ -12,4 +12,8 @@ public interface IReservationRequestRepository
     Task AddAsync(
         ReservationRequestRecord request,
         CancellationToken cancellationToken = default);
+
+    Task<(ReservationRequestRecord Request, bool Created)> AddOrGetExistingAsync(
+        ReservationRequestRecord request,
+        CancellationToken cancellationToken = default);
 }

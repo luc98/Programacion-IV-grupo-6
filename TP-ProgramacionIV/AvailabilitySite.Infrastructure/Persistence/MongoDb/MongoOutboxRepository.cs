@@ -86,6 +86,19 @@ public sealed class MongoOutboxRepository(MongoDbContext context, IOptions<Outbo
             return result.ModifiedCount == 1;
         });
 
+    public Task<bool> RenewLeaseAsync(Guid messageId, string processorId, TimeSpan leaseDuration, CancellationToken cancellationToken = default) =>
+        MongoErrors.ExecuteAsync(async () =>
+        {
+            var now = UtcNow();
+            var result = await context.OutboxMessages.UpdateOneAsync(
+                Builders<OutboxMessageDocument>.Filter.And(
+                    ClaimedBy(messageId, processorId),
+                    Builders<OutboxMessageDocument>.Filter.Gt(m => m.LockedUntil, now)),
+                Builders<OutboxMessageDocument>.Update.Set(m => m.LockedUntil, now + leaseDuration),
+                cancellationToken: cancellationToken);
+            return result.ModifiedCount == 1;
+        });
+
     public Task<OutboxFailureResult> MarkFailedAsync(
         Guid messageId,
         string processorId,

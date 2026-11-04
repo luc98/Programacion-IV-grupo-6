@@ -9,24 +9,17 @@ namespace AvailabilitySite.Application.Tests;
 public sealed class RequestReservationServiceTests
 {
     [Fact]
-    public async Task ExecuteAsync_ValidRequest_PublishesCompatibleMessageAndReceipt()
+    public async Task ExecuteAsync_ValidRequest_ReturnsPendingReceipt()
     {
         var eventId = Guid.NewGuid();
         var seatId = Guid.NewGuid();
-        var publisher = new FakePublisher();
-        var service = CreateService(publisher: publisher);
+        var service = CreateService(availability: new FakeAvailability(eventId, seatId));
 
         var result = await service.ExecuteAsync(
             new CreateReservationRequestDto(eventId, seatId, "key-1"));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
-        Assert.NotNull(publisher.Message);
-        Assert.Equal(result.Value!.RequestId, publisher.Message!.SolicitudId);
-        Assert.Equal(eventId, publisher.Message.EventoId);
-        Assert.Equal(seatId, publisher.Message.AsientoId);
-        Assert.Equal("user-1", publisher.Message.UsuarioId);
-        Assert.Equal(result.Value.RequestId, publisher.Message.SolicitudId);
         Assert.Equal(ReservationRequestStatus.Pending, result.Value.Status);
         Assert.False(result.Value.IsReplay);
     }
@@ -55,8 +48,7 @@ public sealed class RequestReservationServiceTests
             DateTimeOffset.UtcNow,
             ReservationRequestStatus.Pending);
         var repository = new FakeRepository(existing);
-        var publisher = new FakePublisher();
-        var service = CreateService(repository, publisher);
+        var service = CreateService(repository);
 
         var result = await service.ExecuteAsync(
             new CreateReservationRequestDto(existing.EventId, existing.SeatId, "key-1"));
@@ -64,45 +56,30 @@ public sealed class RequestReservationServiceTests
         Assert.True(result.IsSuccess);
         Assert.True(result.Value!.IsReplay);
         Assert.Equal(existing.RequestId, result.Value.RequestId);
-        Assert.Null(publisher.Message);
     }
 
     [Fact]
-    public async Task ExecuteAsync_PublisherCancellation_IsPropagated()
+    public async Task ExecuteAsync_UnknownSeat_ReturnsNotFound()
     {
-        var expected = new OperationCanceledException();
-        var service = CreateService(publisher: new FakePublisher(() => throw expected));
-
-        var actual = await Assert.ThrowsAsync<OperationCanceledException>(
-            () => service.ExecuteAsync(
-                new CreateReservationRequestDto(Guid.NewGuid(), Guid.NewGuid(), "key-1")));
-
-        Assert.Same(expected, actual);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_PublisherError_ReturnsOutcomeUnknown()
-    {
-        var service = CreateService(
-            publisher: new FakePublisher(() => throw new InvalidOperationException("broker failure")));
+        var service = CreateService(availability: new FakeAvailability(Guid.NewGuid(), Guid.NewGuid()));
 
         var result = await service.ExecuteAsync(
             new CreateReservationRequestDto(Guid.NewGuid(), Guid.NewGuid(), "key-1"));
 
         Assert.False(result.IsSuccess);
-        Assert.Equal(ApplicationErrorType.OutcomeUnknown, result.Error!.Type);
-        Assert.Equal("reservation_publication_unknown", result.Error.Code);
+        Assert.Equal(ApplicationErrorType.NotFound, result.Error!.Type);
+        Assert.Equal("seat_not_found", result.Error.Code);
     }
 
     private static RequestReservationService CreateService(
         FakeRepository? repository = null,
-        FakePublisher? publisher = null,
-        FakeUserContext? userContext = null)
+        FakeUserContext? userContext = null,
+        FakeAvailability? availability = null)
     {
         return new RequestReservationService(
             userContext ?? new FakeUserContext(true, "user-1"),
             repository ?? new FakeRepository(),
-            publisher ?? new FakePublisher());
+            availability ?? new FakeAvailability());
     }
 
     private sealed class FakeUserContext(bool isAuthenticated, string? userId)
@@ -111,6 +88,21 @@ public sealed class RequestReservationServiceTests
         public bool IsAuthenticated => isAuthenticated;
 
         public string? UserId => userId;
+    }
+
+    private sealed class FakeAvailability(Guid? eventId = null, Guid? seatId = null) : IAvailabilityQueryRepository
+    {
+        private readonly Guid eventId = eventId ?? Guid.NewGuid();
+        private readonly Guid seatId = seatId ?? Guid.NewGuid();
+
+        public Task<IReadOnlyList<Seat>> GetSeatsAsync(Guid requestedEventId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<Seat> seats = requestedEventId == eventId
+                ? [new Seat { Id = seatId, EventId = eventId, Label = "A-01", IsAvailable = true }]
+                : [];
+            return Task.FromResult(seats);
+        }
     }
 
     private sealed class FakeRepository(ReservationRequestRecord? existing = null)
@@ -138,21 +130,19 @@ public sealed class RequestReservationServiceTests
             Added.Add(request);
             return Task.CompletedTask;
         }
-    }
 
-    private sealed class FakePublisher(Action? publish = null)
-        : IReservationRequestPublisher
-    {
-        public ReservationRequestedMessage? Message { get; private set; }
-
-        public Task PublishAsync(
-            ReservationRequestedMessage message,
+        public Task<(ReservationRequestRecord Request, bool Created)> AddOrGetExistingAsync(
+            ReservationRequestRecord request,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            publish?.Invoke();
-            Message = message;
-            return Task.CompletedTask;
+            if (existing is not null)
+            {
+                return Task.FromResult((existing, false));
+            }
+
+            Added.Add(request);
+            return Task.FromResult((request, true));
         }
     }
 }
