@@ -13,7 +13,8 @@ Responsable del front: Jonathan Mariño.
 | Confirmar solicitud | `/Reservations/Confirm?eventId=&seatId=` | con sesión | `IGetEventAvailabilityUseCase`, `IRequestReservationUseCase` |
 | Seguimiento | `/Reservations/Track/{requestId}` | con sesión, solo solicitudes propias | `IListCurrentUserReservationRequestsUseCase`, `IGetReservationRequestStatusUseCase` |
 | Mis solicitudes | `/Reservations` | con sesión | `IListCurrentUserReservationRequestsUseCase`, `IGetReservationRequestStatusUseCase` |
-| Login / logout | `/Account/Login`, `/Account/Logout` (POST) | — | OIDC con Keycloak |
+| Login | `/Account/Login` | público | Pantalla con "Cuenta externa" → Google a través de Keycloak (OIDC, `kc_idp_hint=google`) |
+| Logout | `/Account/Logout` (POST) | con sesión | Cierra la sesión del sitio y la de Keycloak |
 
 ## Cómo está armado
 
@@ -39,6 +40,7 @@ Responsable del front: Jonathan Mariño.
 - **Seguridad:**
   - Antiforgery en todos los POST.
   - Los formularios se validan en el servidor.
+  - Las páginas con `[Authorize]` pasan primero por la pantalla de login del sitio, que manda a Google a través de Keycloak.
   - El login solo vuelve a URLs locales.
   - Los tokens de Keycloak no se envían al navegador.
 - **Doble envío.** `site.js` deshabilita el botón después del primer clic. La protección real es la clave de idempotencia.

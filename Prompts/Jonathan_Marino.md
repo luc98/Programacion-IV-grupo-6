@@ -146,3 +146,19 @@ organizada la capa de presentación, las decisiones (idempotencia, polling, auto
 correrlo con los user-secrets. Y armá este historial de prompts siguiendo el formato del grupo.
 ```
 - **Resultado**: `AvailabilitySite.Web/README.md` y este archivo.
+
+### Entrada #9 — Pantalla de login
+- **Fecha**: 04/11/2026
+- **Prompt**:
+```text
+El profesor pidió una pantalla de login simple, como el panel "External Account" del login de
+Duende: un recuadro con un solo botón de proveedor externo. Hoy /Account/Login hace Challenge y cae
+directo en la pantalla de Keycloak. Agregá una vista propia con "Cuenta externa" y "Continuar con
+Google" (POST con antiforgery). El realm ya tiene Google como identity provider: pasale kc_idp_hint
+para que Keycloak vaya directo a Google. Las páginas con [Authorize] tienen que pasar por esta
+pantalla, sin cambiar la configuración de Keycloak.
+```
+- **Resultado**:
+  - Vista `Account/Login` con el botón "Continuar con Google".
+  - `kc_idp_hint=google` agregado en `OnRedirectToIdentityProvider`.
+  - El challenge por defecto pasa a la cookie, que tiene `LoginPath = /Account/Login`.
