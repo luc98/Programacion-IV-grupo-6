@@ -821,10 +821,10 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://localhost:3000/*"
+        "http://localhost:5215/*"
       ],
       "webOrigins": [
-        "http://localhost:3000"
+        "http://localhost:5215"
       ],
       "notBefore": 0,
       "bearerOnly": false,
