@@ -41,4 +41,3 @@ public static class MongoDbServiceCollectionExtensions
         return services;
     }
 }
-

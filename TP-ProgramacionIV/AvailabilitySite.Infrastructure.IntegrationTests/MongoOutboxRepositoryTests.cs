@@ -166,4 +166,3 @@ public sealed class MongoOutboxRepositoryTests(MongoTestFixture fixture)
         public void Advance(TimeSpan delta) => Now += delta;
     }
 }
-

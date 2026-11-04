@@ -76,4 +76,3 @@ internal static class MongoErrors
         _ => false,
     };
 }
-

@@ -96,4 +96,3 @@ public sealed class MongoAvailabilityQueryRepositoryTests(MongoTestFixture fixtu
         return indexes.ToDictionary(index => index["name"].AsString);
     }
 }
-

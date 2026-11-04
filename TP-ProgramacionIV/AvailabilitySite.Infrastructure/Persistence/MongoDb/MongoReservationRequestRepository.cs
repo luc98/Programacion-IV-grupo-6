@@ -143,4 +143,3 @@ public sealed class MongoReservationRequestRepository(MongoDbContext context) : 
         };
     }
 }
-

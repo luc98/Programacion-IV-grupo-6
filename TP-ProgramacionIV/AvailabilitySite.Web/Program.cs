@@ -84,6 +84,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRequestLocalization("es-AR");
 app.UseRouting();
 
 app.UseAuthentication();

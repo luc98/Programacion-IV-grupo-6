@@ -63,4 +63,3 @@ public sealed record OutboxFailureResult(
     bool MovedToFailed,
     int RetryCount,
     DateTimeOffset? NextAttemptAt);
-

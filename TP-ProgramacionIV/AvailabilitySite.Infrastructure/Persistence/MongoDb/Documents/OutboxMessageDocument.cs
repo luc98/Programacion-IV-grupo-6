@@ -42,4 +42,3 @@ public sealed class OutboxMessageDocument
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime? LockedUntil { get; set; }
 }
-

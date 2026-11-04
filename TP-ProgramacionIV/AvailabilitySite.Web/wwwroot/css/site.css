@@ -1,31 +1,295 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 html {
-  position: relative;
-  min-height: 100%;
+    position: relative;
+    min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+    color: var(--bs-secondary-color);
+    text-align: end;
 }
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+    text-align: start;
+}
+
+/* ---------------------------------------------------------------- Availability */
+
+:root {
+    --seat-size: 2.5rem;
+    --seat-available: #198754;
+    --seat-held: #b35c00;
+    --seat-confirmed: #6c757d;
+    --focus-ring: #0b5ed7;
+}
+
+/* Foco visible y consistente en todos los elementos interactivos. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible + label,
+.btn:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+main:focus {
+    outline: none;
+}
+
+.skip-link {
+    position: absolute;
+    top: .5rem;
+    left: .5rem;
+    z-index: 1000;
+    padding: .5rem 1rem;
+    background: #fff;
+    border: 2px solid var(--focus-ring);
+}
+
+.demo-banner {
+    background: #fff3cd;
+    border-bottom: 2px dashed #997404;
+    color: #332701;
+    padding: .4rem 0;
+    font-size: .9rem;
+}
+
+/* El footer del template es absoluto; se deja espacio para que no tape contenido en pantallas chicas. */
+body {
+    margin-bottom: 80px;
+}
+
+.footer {
+    white-space: normal;
+    line-height: 1.4;
+    padding: 1rem 0;
+}
+
+/* ---- Grilla de asientos */
+
+.seat-map {
+    overflow-x: auto;
+    padding-bottom: .5rem;
+}
+
+.seat-map__stage {
+    max-width: 24rem;
+    margin: 0 auto 1rem 3.5rem;
+    padding: .25rem;
+    text-align: center;
+    font-size: .8rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    background: #e9ecef;
+    border-radius: 0 0 1rem 1rem;
+}
+
+.seat-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .4rem;
+}
+
+.seat-row__label {
+    flex: 0 0 3rem;
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.seat-row__seats {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .35rem;
+    margin: 0;
+}
+
+.seat-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.seat {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--seat-size);
+    height: var(--seat-size);
+    border: 2px solid;
+    border-radius: .4rem .4rem .8rem .8rem;
+    font-weight: 600;
+    font-size: .9rem;
+    user-select: none;
+}
+
+.seat--sample {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: .8rem;
+}
+
+.seat__icon {
+    font-size: .7rem;
+    line-height: 1;
+}
+
+.seat__number + .seat__icon {
+    position: absolute;
+    top: 1px;
+    right: 3px;
+}
+
+.seat--available {
+    border-color: var(--seat-available);
+    color: var(--seat-available);
+    background: #fff;
+    cursor: pointer;
+}
+
+    .seat--available:hover {
+        background: #d1e7dd;
+    }
+
+/* Retenido: rayado (no depende solo del color). */
+.seat--held {
+    border-color: var(--seat-held);
+    border-style: dashed;
+    color: #6b3700;
+    background: repeating-linear-gradient(45deg, #fff1e0, #fff1e0 4px, #ffd8a8 4px, #ffd8a8 8px);
+    cursor: not-allowed;
+}
+
+/* Confirmado: relleno sólido con cruz. */
+.seat--confirmed {
+    border-color: var(--seat-confirmed);
+    color: #fff;
+    background: var(--seat-confirmed);
+    cursor: not-allowed;
+}
+
+.seat-input:checked + .seat--available {
+    background: var(--seat-available);
+    color: #fff;
+    box-shadow: 0 0 0 3px #a3cfbb;
+}
+
+    .seat-input:checked + .seat--available::after {
+        content: "✓";
+        position: absolute;
+        top: -2px;
+        right: 3px;
+        font-size: .7rem;
+    }
+
+/* ---- Estados de seguimiento */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .15rem .6rem;
+    border: 2px solid;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+.status-badge--lg {
+    font-size: 1.15rem;
+    padding: .3rem .9rem;
+}
+
+.status-badge--available, .status-badge--confirmed {
+    border-color: #146c43;
+    color: #0f5132;
+    background: #d1e7dd;
+}
+
+.status-badge--pending {
+    border-color: #0a58ca;
+    color: #052c65;
+    background: #cfe2ff;
+    border-style: dotted;
+}
+
+.status-badge--held {
+    border-color: #b35c00;
+    color: #6b3700;
+    background: #fff1e0;
+    border-style: dashed;
+}
+
+.status-badge--rejected {
+    border-color: #b02a37;
+    color: #58151c;
+    background: #f8d7da;
+}
+
+.status-badge--expired {
+    border-color: #6c757d;
+    color: #343a40;
+    background: #e9ecef;
+}
+
+.tracking-panel {
+    border: 1px solid #dee2e6;
+    border-left-width: 6px;
+    border-radius: .5rem;
+    padding: 1.25rem;
+    background: #fff;
+}
+
+.tracking-panel--confirmed {
+    border-left-color: #146c43;
+}
+
+.tracking-panel--pending {
+    border-left-color: #0a58ca;
+}
+
+.tracking-panel--held {
+    border-left-color: #b35c00;
+}
+
+.tracking-panel--rejected {
+    border-left-color: #b02a37;
+}
+
+.tracking-panel--expired {
+    border-left-color: #6c757d;
+}
+
+.tracking-details dd {
+    word-break: break-word;
+}
+
+.identifier {
+    font-size: .85em;
+    word-break: break-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
 }

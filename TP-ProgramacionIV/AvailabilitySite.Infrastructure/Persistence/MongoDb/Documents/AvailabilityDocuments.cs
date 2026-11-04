@@ -63,4 +63,3 @@ public sealed class ReservationRequestDocument
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; }
 }
-

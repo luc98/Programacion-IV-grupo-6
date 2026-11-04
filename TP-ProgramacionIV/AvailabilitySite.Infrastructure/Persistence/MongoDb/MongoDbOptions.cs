@@ -28,4 +28,3 @@ public sealed class OutboxOptions
 
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromMinutes(5);
 }
-

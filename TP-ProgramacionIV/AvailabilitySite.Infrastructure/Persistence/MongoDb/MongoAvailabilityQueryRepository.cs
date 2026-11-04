@@ -66,4 +66,3 @@ public sealed class MongoAvailabilityQueryRepository(MongoDbContext context) : I
     private static EventSummaryDto ToSummary(EventDocument document) =>
         new(document.EventId, document.Name, document.Venue, new DateTimeOffset(document.StartsAt, TimeSpan.Zero));
 }
-
