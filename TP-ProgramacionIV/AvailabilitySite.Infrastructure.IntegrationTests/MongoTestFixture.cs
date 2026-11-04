@@ -108,3 +108,4 @@ public sealed class TestDatabase(MongoDbContext context, IOptions<OutboxOptions>
 
     public async ValueTask DisposeAsync() => await Context.Client.DropDatabaseAsync(Context.Database.DatabaseNamespace.DatabaseName);
 }
+

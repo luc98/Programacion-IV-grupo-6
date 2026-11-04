@@ -1,4 +1,5 @@
 using AvailabilitySite.Application.Abstractions;
+using AvailabilitySite.Application.Events;
 using AvailabilitySite.Domain.Entities;
 
 namespace AvailabilitySite.Infrastructure.Availability;
@@ -44,6 +45,22 @@ public sealed class InMemoryAvailabilityQueryRepository : IAvailabilityQueryRepo
             IsAvailable = true
         }
     ];
+
+    public Task<IReadOnlyList<EventSummaryDto>> ListEventsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<EventSummaryDto> result = Events
+            .Select(@event => new EventSummaryDto(
+                @event.Id,
+                @event.Name,
+                Venue: string.Empty,
+                StartsAt: DateTimeOffset.MinValue))
+            .ToList();
+
+        return Task.FromResult(result);
+    }
 
     public Task<IReadOnlyList<Seat>> GetSeatsAsync(
         Guid eventId,

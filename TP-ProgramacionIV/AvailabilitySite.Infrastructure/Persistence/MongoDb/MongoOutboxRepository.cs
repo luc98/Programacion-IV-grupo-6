@@ -207,3 +207,4 @@ public sealed class MongoOutboxRepository(MongoDbContext context, IOptions<Outbo
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc), TimeSpan.Zero);
 }
+

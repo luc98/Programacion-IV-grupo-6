@@ -61,3 +61,4 @@ internal sealed class MongoIndexInitializerHostedService(MongoIndexInitializer i
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
+

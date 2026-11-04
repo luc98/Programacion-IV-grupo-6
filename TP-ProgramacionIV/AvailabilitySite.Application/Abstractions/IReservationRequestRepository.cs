@@ -4,6 +4,11 @@ namespace AvailabilitySite.Application.Abstractions;
 
 public interface IReservationRequestRepository
 {
+    Task<IReadOnlyList<ReservationRequestRecord>> ListByUserAsync(
+        string userId,
+        int limit = 100,
+        CancellationToken cancellationToken = default);
+
     Task<ReservationRequestRecord?> FindByIdempotencyKeyAsync(
         string userId,
         string idempotencyKey,

@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>availability-site-web-grupo6</UserSecretsId>
+    <UserSecretsId>a4fce15b-510b-42c5-a73d-53d08207e9bc</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

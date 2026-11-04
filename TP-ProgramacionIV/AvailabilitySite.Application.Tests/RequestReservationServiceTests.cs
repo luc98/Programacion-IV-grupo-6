@@ -95,6 +95,10 @@ public sealed class RequestReservationServiceTests
         private readonly Guid eventId = eventId ?? Guid.NewGuid();
         private readonly Guid seatId = seatId ?? Guid.NewGuid();
 
+        public Task<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>> ListEventsAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>>([]);
+
         public Task<IReadOnlyList<Seat>> GetSeatsAsync(Guid requestedEventId, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -109,6 +113,18 @@ public sealed class RequestReservationServiceTests
         : IReservationRequestRepository
     {
         public List<ReservationRequestRecord> Added { get; } = [];
+
+        public Task<IReadOnlyList<ReservationRequestRecord>> ListByUserAsync(
+            string userId,
+            int limit = 100,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<ReservationRequestRecord> result = existing is not null && existing.UserId == userId
+                ? [existing]
+                : [];
+            return Task.FromResult(result);
+        }
 
         public Task<ReservationRequestRecord?> FindByIdempotencyKeyAsync(
             string userId,

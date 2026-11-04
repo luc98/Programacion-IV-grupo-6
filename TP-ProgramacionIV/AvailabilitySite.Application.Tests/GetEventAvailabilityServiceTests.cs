@@ -93,6 +93,10 @@ public sealed class GetEventAvailabilityServiceTests
         Func<Guid, IReadOnlyList<Seat>> getSeats)
         : IAvailabilityQueryRepository
     {
+        public Task<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>> ListEventsAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>>([]);
+
         public Task<IReadOnlyList<Seat>> GetSeatsAsync(
             Guid eventId,
             CancellationToken cancellationToken = default)

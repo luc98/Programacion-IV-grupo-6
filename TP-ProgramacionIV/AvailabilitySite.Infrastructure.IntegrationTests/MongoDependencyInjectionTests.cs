@@ -59,3 +59,4 @@ public sealed class MongoDependencyInjectionTests(MongoTestFixture fixture)
         Assert.Equal("AvailabilityDb", new MongoDbOptions().DatabaseName);
     }
 }
+

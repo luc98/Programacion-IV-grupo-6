@@ -1,4 +1,5 @@
 using AvailabilitySite.Application.Abstractions;
+using AvailabilitySite.Infrastructure.Availability;
 using AvailabilitySite.Infrastructure.Booking;
 using AvailabilitySite.Infrastructure.Messaging;
 using AvailabilitySite.Infrastructure.Outbox;
@@ -15,7 +16,6 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Persistencia real (MongoDB Atlas). Los mocks quedan solo en AddAvailabilityMock().
         services.AddAvailabilityMongoDb(configuration);
 
         services.AddOptions<BookingOptions>()
@@ -29,6 +29,19 @@ public static class DependencyInjection
             var options = serviceProvider.GetRequiredService<IOptions<BookingOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
         });
+
+        services.AddOptions<KeycloakServiceOptions>()
+            .Bind(configuration.GetSection(KeycloakServiceOptions.SectionName))
+            .Validate(options => Uri.TryCreate(options.Authority, UriKind.Absolute, out _),
+                "KeycloakService:Authority debe ser una URL absoluta.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.ClientId),
+                "KeycloakService:ClientId es obligatorio.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.ClientSecret),
+                "KeycloakService:ClientSecret debe configurarse mediante User Secrets o variables de entorno.")
+            .ValidateOnStart();
+
+        services.AddHttpClient("KeycloakService");
+        services.AddSingleton<IAccessTokenProvider, KeycloakClientCredentialsTokenProvider>();
 
         services.AddOptions<ServiceBusOptions>()
             .Bind(configuration.GetSection(ServiceBusOptions.SectionName))

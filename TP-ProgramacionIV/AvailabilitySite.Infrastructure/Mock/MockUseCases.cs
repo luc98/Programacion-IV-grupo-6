@@ -17,6 +17,12 @@ namespace AvailabilitySite.Infrastructure.Mock;
 
 internal sealed class InMemoryAvailabilityQueryRepository(MockData data) : IAvailabilityQueryRepository
 {
+    public Task<IReadOnlyList<EventSummaryDto>> ListEventsAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<EventSummaryDto>>(data.Events);
+    }
+
     public Task<IReadOnlyList<Seat>> GetSeatsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

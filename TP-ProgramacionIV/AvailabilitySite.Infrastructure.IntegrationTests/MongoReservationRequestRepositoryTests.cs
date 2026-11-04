@@ -223,6 +223,10 @@ public sealed class MongoReservationRequestRepositoryTests(MongoTestFixture fixt
 
     private sealed class FixedSeatAvailability(Guid seatId) : IAvailabilityQueryRepository
     {
+        public Task<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>> ListEventsAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AvailabilitySite.Application.Events.EventSummaryDto>>([]);
+
         public Task<IReadOnlyList<Seat>> GetSeatsAsync(Guid eventId, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Seat>>([new Seat { Id = seatId, EventId = eventId }]);
     }

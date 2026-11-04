@@ -34,3 +34,4 @@ public sealed class MongoDbContext
 
     public IMongoCollection<OutboxMessageDocument> OutboxMessages { get; }
 }
+
