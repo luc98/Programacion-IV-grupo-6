@@ -63,14 +63,6 @@ main:focus {
     border: 2px solid var(--focus-ring);
 }
 
-.demo-banner {
-    background: #fff3cd;
-    border-bottom: 2px dashed #997404;
-    color: #332701;
-    padding: .4rem 0;
-    font-size: .9rem;
-}
-
 /* El footer del template es absoluto; se deja espacio para que no tape contenido en pantallas chicas. */
 body {
     margin-bottom: 80px;

@@ -2,6 +2,7 @@ using AvailabilitySite.Application;
 using AvailabilitySite.Application.Abstractions;
 using AvailabilitySite.Infrastructure;
 using AvailabilitySite.Web.Authentication;
+using AvailabilitySite.Web.Composition;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -72,6 +73,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAvailabilityInfrastructure(builder.Configuration);
 builder.Services.AddAvailabilityApplication();
+builder.AddAvailabilityPresentation();
 
 var app = builder.Build();
 

@@ -9,10 +9,9 @@ public abstract class AppController : Controller
 {
     protected IActionResult ErrorPage(ApplicationError error, string? retryUrl = null, params PageLink[] links)
     {
-        // Todavía no hay login: si la API pide usuario, se muestra un 401 en vez de redirigir.
-        // TODO(backend): con login real, devolver Challenge() para ir a iniciar sesión.
+        // Sin sesión: se redirige al login de Keycloak y después se vuelve a esta misma página.
         if (error.Type == ApplicationErrorType.Unauthenticated)
-            return StatusPage(StatusCodes.Status401Unauthorized, "Necesitás iniciar sesión", error.Message);
+            return Challenge();
 
         var (status, title) = error.Type switch
         {
