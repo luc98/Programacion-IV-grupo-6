@@ -13,6 +13,7 @@ public static class DependencyInjection
     public const string EventSourceTypeKey = "EventSource:Type";
     public const string FakeSource = "Fake";
     public const string ServiceBusSource = "ServiceBus";
+    public const string NoneSource = "None";
 
     public static IServiceCollection AddNotificationCore(this IServiceCollection services, IConfiguration configuration)
     {
@@ -46,10 +47,14 @@ public static class DependencyInjection
         {
             services.AddSingleton<IEventSource, ServiceBusEventSource>();
         }
+        else if (type.Equals(NoneSource, StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddSingleton<IEventSource, IdleEventSource>();
+        }
         else
         {
             throw new InvalidOperationException(
-                $"{EventSourceTypeKey} no es válido: '{type}'. Los valores posibles son {FakeSource} y {ServiceBusSource}.");
+                $"{EventSourceTypeKey} no es válido: '{type}'. Los valores posibles son {FakeSource}, {ServiceBusSource} y {NoneSource}.");
         }
 
         return services;

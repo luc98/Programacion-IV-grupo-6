@@ -53,6 +53,16 @@ public class EventSourceSelectionTests
         Assert.IsType<ServiceBusEventSource>(provider.GetRequiredService<IEventSource>());
     }
 
+    [Theory]
+    [InlineData("None")]
+    [InlineData("none")]
+    public void Con_None_no_lee_de_ningun_lado_y_se_atiende_solo_por_HTTP(string type)
+    {
+        using var provider = Build(Configuration(("EventSource:Type", type)));
+
+        Assert.IsType<IdleEventSource>(provider.GetRequiredService<IEventSource>());
+    }
+
     [Fact]
     public void Un_tipo_desconocido_falla_al_arrancar_con_los_valores_posibles()
     {
@@ -60,6 +70,7 @@ public class EventSourceSelectionTests
 
         Assert.Contains("Fake", ex.Message);
         Assert.Contains("ServiceBus", ex.Message);
+        Assert.Contains("None", ex.Message);
     }
 
     [Fact]

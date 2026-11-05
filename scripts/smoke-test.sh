@@ -48,6 +48,21 @@ esperar "Procesó los mensajes de ejemplo" 30 log_contiene "se entregaron todos 
 [ "$(cuenta_en_log 'Resultado=DeadLetter')" = "1" ] && ok "Mandó 1 mensaje inválido a la cola de errores" || mal "Se esperaba 1 mensaje en la cola de errores"
 log_contiene "TraceId=a1f3c0de5b7e4c9f8a2d6e1b3c4d5e6f" && ok "Los registros llevan el TraceId" || mal "No aparece el TraceId en el log"
 
+paso "Entrada HTTP del notificador"
+URL=http://127.0.0.1:5050/api/notifications
+RESERVA=$(cat /proc/sys/kernel/random/uuid)
+CUERPO="{\"tipoEvento\":\"ReservaCreada\",\"reservaId\":\"$RESERVA\",\"usuarioId\":\"usuario-http\",\"estado\":\"Retenida\",\"fechaVencimientoUtc\":\"2026-11-05T18:05:00Z\",\"traceId\":\"trace-http-1\"}"
+
+codigo_http() { curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'content-type: application/json' "$@"; }
+
+[ "$(codigo_http -H 'x-event-type: ReservaCreada' -H 'x-trace-id: trace-http-1' -d "$CUERPO")" = "202" ] && ok "Un evento válido responde 202" || mal "Se esperaba 202 con un evento válido"
+[ "$(codigo_http -H 'x-event-type: ReservaCreada' -d "$CUERPO")" = "202" ] && ok "El mismo evento repetido responde 202" || mal "Se esperaba 202 con el evento repetido"
+[ "$(cuenta_en_log "AVISO para usuario-http")" = "1" ] && ok "Avisó una sola vez al usuario" || mal "Se esperaba un solo aviso para usuario-http"
+log_contiene "TraceId=trace-http-1" && ok "Los registros llevan el TraceId de la cabecera" || mal "No aparece TraceId=trace-http-1 en el log"
+[ "$(codigo_http -d 'esto no es json')" = "400" ] && ok "Un cuerpo inválido responde 400" || mal "Se esperaba 400 con un cuerpo inválido"
+[ "$(codigo_http -H 'x-event-type: ReservaCreada' -d "{\"usuarioId\":\"u\",\"relleno\":\"$(head -c 70000 /dev/zero | tr '\0' x)\"}")" = "413" ] && ok "Un cuerpo de más de 64 KB responde 413" || mal "Se esperaba 413 con un cuerpo muy grande"
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5050/api/notifications)" = "405" ] && ok "GET responde 405" || mal "Se esperaba 405 con GET"
+
 echo
 if [ "$fallos" -eq 0 ]; then
   paso "PRUEBA OK"

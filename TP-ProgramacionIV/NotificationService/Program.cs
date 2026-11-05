@@ -1,10 +1,12 @@
 using NotificationService;
+using NotificationService.Http;
 using Serilog;
 
 try
 {
-    var builder = Host.CreateApplicationBuilder(args);
+    var builder = WebApplication.CreateBuilder(args);
 
+    builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = NotificationEndpoint.MaxBodyBytes);
     builder.Services.AddSerilog((services, configuration) => configuration
         .ReadFrom.Configuration(builder.Configuration)
         .ReadFrom.Services(services));
@@ -12,8 +14,9 @@ try
     builder.Services.AddEventSource(builder.Configuration);
     builder.Services.AddHostedService<Worker>();
 
-    var host = builder.Build();
-    host.Run();
+    var app = builder.Build();
+    app.MapNotificationEndpoint();
+    app.Run();
     return Environment.ExitCode;
 }
 catch (InvalidOperationException ex)
@@ -21,3 +24,5 @@ catch (InvalidOperationException ex)
     Console.Error.WriteLine($"No se pudo iniciar el servicio: {ex.Message}");
     return 1;
 }
+
+public partial class Program;

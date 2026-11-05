@@ -64,6 +64,8 @@ services:
       ServiceBus__ConnectionString: ${SERVICEBUS_CONNECTION_STRING:-}
       ServiceBus__TopicName: ${SERVICEBUS_TOPIC:-}
       ServiceBus__SubscriptionName: ${SERVICEBUS_SUBSCRIPTION:-notification}
+    ports:
+      - "127.0.0.1:5050:5050"
     networks:
       - reservas
     restart: unless-stopped
