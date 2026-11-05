@@ -1,0 +1,43 @@
+﻿@model EventListViewModel
+@inject DateTimeDisplay Dates
+@{
+    ViewData["Title"] = "Eventos";
+}
+
+<h1>Eventos</h1>
+<p class="text-body-secondary">Elegí un evento para ver qué asientos están disponibles. No hace falta iniciar sesión para consultar.</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p class="mb-2">@Model.ErrorMessage</p>
+        <a class="btn btn-sm btn-outline-danger" asp-action="Index">Reintentar</a>
+    </div>
+}
+else if (Model.Events.Count == 0)
+{
+    <p class="alert alert-info">Por ahora no hay eventos publicados.</p>
+}
+else
+{
+    <ul class="row list-unstyled g-3">
+        @foreach (var ev in Model.Events)
+        {
+            <li class="col-12 col-md-6 col-lg-4">
+                <article class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h2 class="h5 card-title">@ev.Name</h2>
+                        <p class="card-text mb-1">@ev.Venue</p>
+                        <p class="card-text text-body-secondary">
+                            <time datetime="@DateTimeDisplay.Iso(ev.StartsAt)">@Dates.Long(ev.StartsAt)</time>
+                            <span class="small">(@Dates.ZoneLabel)</span>
+                        </p>
+                        <a class="btn btn-primary mt-auto align-self-start" asp-controller="Events" asp-action="Availability" asp-route-id="@ev.EventId">
+                            Ver disponibilidad<span class="visually-hidden"> de @ev.Name</span>
+                        </a>
+                    </div>
+                </article>
+            </li>
+        }
+    </ul>
+}
