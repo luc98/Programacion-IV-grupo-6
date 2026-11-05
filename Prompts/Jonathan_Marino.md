@@ -4,7 +4,7 @@
 **Grupo**: 6
 **Parte a cargo**: Front de Availability Site (Razor MVC) + persistencia MongoDB que pidió el compañero del back
 **Rama**: `Feature1-Availability-front`
-**Herramienta**: Claude Code (Claude), usado junto con mi primo Matías
+**Herramienta**: Claude Code (Claude)
 
 Los prompts #1 y #2 están recortados (se marca con `[...]`). El resto está resumido y reformulado: cada uno junta lo que se pidió en varios mensajes cortos.
 
