@@ -128,11 +128,60 @@ Registra el worker en Program.cs y hace un build para confirmar que no rompa nad
   1. Se configuró el almacén local de secretos de usuario de .NET (`User Secrets`) en `%APPDATA%\Microsoft\UserSecrets\9cd132a1-3bf5-44c3-b133-85c639d2439b\secrets.json` con la clave `Authentication:ClientSecret` provista por Felipe para Keycloak, verificando su correcta resolución con `dotnet user-secrets list` fuera del control de versiones.
   2. Se adaptó `Presentation/Listeners/ServiceBusListener.cs` para brindar soporte dual: detección y suscripción transparente tanto a **Tópicos con Suscripciones** (`SolicitudesTopic` + `SolicitudesSubscription`) como a **Colas** (`SolicitudesQueue`), permitiendo interoperabilidad inmediata con la infraestructura provista por Availability Site.
   3. Se implementó `BLL/Jobs/ExpirationWorker.cs` (Punto 3 del TP):
-     - `BackgroundService` periódico que busca reservas en estado `Retenida` cuya `FechaVencimientoUtc <= DateTime.UtcNow` mediante el repositorio.
-     - Transiciona automáticamente el estado de las reservas expiradas a `EstadoReserva.Vencida`.
-     - **Liberación de asientos**: Debido a la regla de dominio de disponibilidad, pasar la reserva a `Vencida` libera automáticamente el asiento para nuevas solicitudes, alcanzando consistencia eventual de manera autónoma (Puntos 7, 8 y 3.g del TP).
-     - Logs de auditoría estructurados con `TraceId` para la Dupla 4.
-     - Justificaciones teóricas explícitas documentadas en comentarios de código.
+      - `BackgroundService` periódico que busca reservas en estado `Retenida` cuya `FechaVencimientoUtc <= DateTime.UtcNow` mediante el repositorio.
+      - Transiciona automáticamente el estado de las reservas expiradas a `EstadoReserva.Vencida`.
+      - **Liberación de asientos**: Debido a la regla de dominio de disponibilidad, pasar la reserva a `Vencida` libera automáticamente el asiento para nuevas solicitudes, alcanzando consistencia eventual de manera autónoma (Puntos 7, 8 y 3.g del TP).
+      - Logs de auditoría estructurados con `TraceId` para la Dupla 4.
+      - Justificaciones teóricas explícitas documentadas en comentarios de código.
   4. Se actualizó `appsettings.json` con las claves de `AzureServiceBus` y `ExpirationWorker:IntervalSeconds`.
   5. Se completó el registro en `Program.cs` inyectando `ExpirationWorker` como Hosted Service (`AddHostedService<ExpirationWorker>()`).
   6. Se compiló el microservicio completo con `dotnet build`: **0 advertencias y 0 errores**.
+
+
+### Entrada #5 - Configuración de Entorno en Nueva PC y Sincronización de Rama
+- **Fecha**: 04/11/2026
+- **Prompt Enviado**:
+```text
+Buenas Antigravity, me tuve que pasar a otra compu para seguir con el laburo del feature. Necesito que me dejes el entorno listo acá: instalate Git y los SDKs de .NET 8 y 10 en las variables de entorno del usuario así no pide permisos de admin. 
+
+Una vez que tengas eso, postulate en mi rama feature-2-Booking-REST-API, clonate el repo y tirate un pull para estar al día con lo último. Después pegale un build a BookingAPI para confirmar que no rompa nada.
+```
+- **Resumen de lo Realizado**:
+  1. Se instaló `Git` (`Git.MinGit`) en el entorno de usuario y se añadieron sus binarios de manera permanente a la variable de entorno `PATH`.
+  2. Se instalaron los SDKs de .NET (8.0 y 10.0 para compatibilidad plena con el target del `.csproj`) mediante el script oficial de instalación de Microsoft, agregándolo permanentemente al `PATH` del usuario.
+  3. Se clonó exitosamente el repositorio oficial `https://github.com/luc98/Programacion-IV-grupo-6.git` con la rama `feature-2-Booking-REST-API` en la ruta `C:\Users\Roman\OneDrive - Enta Consulting\Escritorio\workspace\utn\Programacion-IV-grupo-6`.
+  4. Se ejecutó `git pull origin feature-2-Booking-REST-API` verificando que la rama local se encuentra 100% al día con el origen remoto.
+  5. Se ejecutó la restauración de dependencias y compilación de `BookingAPI.csproj` con `dotnet build`, comprobando **0 errores y 0 advertencias**.
+
+
+### Entrada #6 - Integración de Contrato gRPC Definitivo, Resiliencia Polly v8, Keycloak y Pruebas
+- **Fecha**: 04/11/2026
+- **Prompt Enviado**:
+```text
+Che, estuve chusmeando las otras ramas del repo y los chicos de las otras duplas ya tienen bastante avanzado lo suyo. Vayamos adaptando mi parte de Booking para que encaje de una cuando toque integrar todo:
+
+Primero actualicemos el proto de payments al que armó Alfre en Protos/payment/v1/payment.proto con el namespace compartido. Adaptate el PaymentGrpcGateway para que mande el monto en centavos con int64 y el x-trace-id en los metadatos gRPC, y metele el pipeline de Polly v8 con timeout y circuit breaker para la degradación elegante del punto 3.j.
+
+Después sumale el KeycloakTokenProvider para sacar el token entre microservicios y corregí el appsettings con el realm reservas-realm y el puerto de payment en http://localhost:5260.
+
+Traete también los tests de BookingAPI.Tests que armaron para el gateway y el token, y clavale un dotnet test a ver si pasan todos. Y de paso armame en limpio la info de los contratos y endpoints que le tengo que pasar a cada dupla por WhatsApp para coordinar la conexión.
+```
+- **Resumen de lo Realizado**:
+  1. **Sincronización de Contrato gRPC**: Se incorporó el contrato gRPC único y compartido `TP-ProgramacionIV/Protos/payment/v1/payment.proto` (con `package payment.v1`, namespace `Grupo6.Payment.Contracts.V1`, `int64 monto_centavos`, y `x-trace-id` en metadatos gRPC). Se actualizó `BookingAPI.csproj` con el enlace tipado al proto compartido y se removió la copia preliminar interna.
+  2. **Pipeline de Resiliencia Polly v8 y Token Provider**: Se adaptó `PaymentGrpcGateway.cs` implementando `ResilienciaPago.cs` (Polly v8 con Timeout global de 10s, 2 reintentos con backoff exponencial y jitter, Circuit Breaker y timeout por intento de 2s) y `KeycloakTokenProvider.cs` para propagar el Bearer token entre microservicios mediante Client Credentials.
+  3. **Ajuste de Configuración en `appsettings.json`**: Se actualizó el Realm de Keycloak a `reservas-realm`, la URL del servicio de pagos a `http://localhost:5260`, y se incorporaron los parámetros de configuración de resiliencia (`ResilienciaPagoOptions`).
+  4. **Pruebas y Verificación Automatizada**: Se incorporó el conjunto de pruebas unitarias y de integración `BookingAPI.Tests`. Se ejecutó `dotnet test` ejecutando y superando con éxito **29 pruebas de 29 (0 errores)**, validando el comportamiento ante cobro aprobado, fondos insuficientes, caídas de red, timeouts, circuito abierto y degradación elegante a `PagoNoDisponible`.
+  5. Compilación del microservicio `BookingAPI.csproj` con `dotnet build`: **0 errores y 0 advertencias**.
+
+
+### Entrada #7 - Configuración de Credenciales de Keycloak y Azure Service Bus en User Secrets
+- **Fecha**: 04/11/2026
+- **Prompt Enviado**:
+```text
+Ahi me pasó Feli por WhatsApp las credenciales que faltaban para conectar todo en serio: el ClientSecret de keycloak y la connection string de Azure Service Bus con el topic del grupo.
+
+Cargalos directo en los User Secrets de .NET de BookingAPI así no quemamos credenciales en el repo ni en el appsettings, y ya nos queda el proyecto autenticando contra Keycloak y conectado al broker real de Azure.
+```
+- **Resumen de lo Realizado**:
+  1. Se configuraron de forma segura los valores de `Authentication:ClientSecret` y `AzureServiceBus:ConnectionString` en el almacén local de secretos de usuario de .NET (`User Secrets`) del proyecto `BookingAPI` mediante el comando `dotnet user-secrets set`.
+  2. Se ejecutó `dotnet user-secrets list` validando la persistencia correcta de ambos secretos en la máquina local fuera del control de versiones de Git, preservando los estándares de seguridad y conectando el microservicio con Keycloak y Azure Service Bus (Puntos 3.e y 3.h del TP).

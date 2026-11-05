@@ -1,122 +1,174 @@
+using System.Diagnostics;
 using BookingAPI.BLL.DTOs;
 using BookingAPI.BLL.Interfaces;
-using BookingAPI.BLL.Protos;
 using BookingAPI.DAL.Entities;
 using Grpc.Core;
+using Grupo6.Payment.Contracts.V1;
 using Polly;
+using Polly.CircuitBreaker;
 using Polly.Timeout;
-using Polly.Wrap;
 
 namespace BookingAPI.BLL.Gateways
 {
     // [JUSTIFICACIÓN TEÓRICA - N-LAYER & GATEWAY PATTERN]
-    // Esta clase pertenece a la capa BLL (Business Logic Layer) y actúa como un Gateway de integración
-    // hacia el microservicio externo Payment gRPC API. Desacopla la lógica de negocio pura de Booking
-    // de los detalles de red, serialización Protobuf y transporte HTTP/2 de gRPC.
+    // Esta clase pertenece a la capa BLL y actúa como Gateway hacia Payment gRPC API. Desacopla la
+    // lógica de negocio de Booking de los detalles de red, Protobuf, HTTP/2 y autenticación.
     //
-    // [JUSTIFICACIÓN TEÓRICA - RESILIENCIA CON POLLY & DEGRADACIÓN ELEGANTE (PUNTO 3.j)]
-    // En arquitecturas de microservicios, las llamadas de red son inherentemente falibles.
-    // Se implementa una política compuesta de resiliencia mediante Polly:
-    // 1. Timeout: Evita retener indefinidamente hilos y recursos si el microservicio de pagos no responde.
-    // 2. Reintentos (Wait and Retry): Mitiga fallos transitorios de red con espera exponencial antes de desistir.
-    // 3. Degradación Elegante: Si Payment está caído o agota los reintentos, se captura la excepción
-    //    y se retorna ServicioCaido = true, permitiendo que la reserva pase a estado 'Rechazada' con el
-    //    motivo 'PagoNoDisponible', preservando la estabilidad del sistema sin arrojar HTTP 500 no controlado.
+    // [JUSTIFICACIÓN TEÓRICA - DEGRADACIÓN ELEGANTE (PUNTO 3.j)]
+    // El gateway nunca lanza excepciones: siempre devuelve un ResultadoCobroDto. BookingService lo
+    // traduce así:
+    //   - Exitoso                  -> la reserva queda Confirmada
+    //   - !Exitoso y !ServicioCaido -> Rechazada por PagoFallido (Payment respondió que no hay fondos)
+    //   - ServicioCaido            -> Rechazada por PagoNoDisponible (Payment caído, lento, circuito
+    //                                 abierto o cualquier falla técnica)
+    // Así el mensaje de Service Bus se completa igual y Booking sigue funcionando aunque Payment no.
     public class PaymentGrpcGateway : IPaymentGateway
     {
+        private const string Operacion = "CobrarReserva";
+        private static readonly TimeSpan EsperaMaximaDelToken = TimeSpan.FromSeconds(5);
+
         private readonly PaymentService.PaymentServiceClient _paymentClient;
+        private readonly ResiliencePipeline _pipeline;
+        private readonly ITokenProvider _tokenProvider;
         private readonly ILogger<PaymentGrpcGateway> _logger;
-        private readonly AsyncPolicyWrap _resiliencePolicy;
 
         public PaymentGrpcGateway(
             PaymentService.PaymentServiceClient paymentClient,
+            ResilienciaPago resiliencia,
+            ITokenProvider tokenProvider,
             ILogger<PaymentGrpcGateway> logger)
         {
             _paymentClient = paymentClient;
+            _pipeline = resiliencia.Pipeline;
+            _tokenProvider = tokenProvider;
             _logger = logger;
-
-            // Define el tiempo maximo de espera (3 segundos) por intento para no bloquear hilos del servidor
-            var timeoutPolicy = Policy.TimeoutAsync(3, TimeoutStrategy.Pessimistic, onTimeoutAsync: (context, timespan, task) =>
-            {
-                _logger.LogWarning("[RESILIENCIA - POLLY] Se superó el tiempo de espera ({Timeout}s) comunicando con Payment gRPC API.", timespan.TotalSeconds);
-                return Task.CompletedTask;
-            });
-
-            // Configura 2 reintentos con backoff exponencial (200ms, 400ms) ante errores transitorios de red o servidor no disponible
-            var retryPolicy = Policy
-                .Handle<RpcException>(ex => EsErrorTransitorio(ex.StatusCode))
-                .WaitAndRetryAsync(
-                    retryCount: 2,
-                    sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(200 * Math.Pow(2, retryAttempt)),
-                    onRetry: (exception, timespan, retryCount, context) =>
-                    {
-                        _logger.LogWarning("[RESILIENCIA - POLLY] Reintento {RetryCount} al llamar a Payment gRPC tras {Delay}ms. Causa: {Message}",
-                            retryCount, timespan.TotalMilliseconds, exception.Message);
-                    });
-
-            // Envuelve el timeout dentro de los reintentos: cada intento individual tiene su propio timeout de 3s
-            _resiliencePolicy = Policy.WrapAsync(retryPolicy, timeoutPolicy);
         }
 
         public async Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto)
         {
-            // [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Genera identificador unico para correlacionar la llamada entre microservicios
-            string traceId = Guid.NewGuid().ToString("N");
-
+            // [DUPLA 4 - TRACEID]: el TraceId de la cadena es el SolicitudId que generó Availability.
+            // Se reutiliza en lugar de crear uno nuevo, así Payment loguea el mismo valor.
+            string traceId = reserva.SolicitudId.ToString();
+            var cronometro = Stopwatch.StartNew();
             _logger.LogInformation(
-                "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Iniciando invocación gRPC a Payment API. TraceId: {TraceId}, SolicitudId: {SolicitudId}, ReservaId: {ReservaId}, Monto: {Monto}",
-                traceId, reserva.SolicitudId, reserva.ReservaId, monto);
+                "{Etapa} {Operacion} TraceId={TraceId} ReservaId={ReservaId} Monto={Monto}",
+                "Inicio", Operacion, traceId, reserva.ReservaId, monto);
 
-            // Mapea la entidad de dominio Reserva hacia el mensaje Protobuf fuertemente tipado
+            ResultadoCobroDto resultado;
+            try
+            {
+                resultado = await CobrarAsync(reserva, monto, traceId);
+            }
+            catch (Exception ex)
+            {
+                // Resguardo final: pase lo que pase, el gateway no lanza
+                _logger.LogError(ex, "[gRPC] TraceId={TraceId} Falla inesperada al preparar el cobro", traceId);
+                resultado = Caido("Error inesperado al preparar el cobro");
+            }
+
+            string estado = resultado.Exitoso ? "Aprobado" : resultado.ServicioCaido ? "PagoNoDisponible" : "PagoFallido";
+            _logger.LogInformation(
+                "{Etapa} {Operacion} TraceId={TraceId} Resultado={Resultado} DuracionMs={DuracionMs}",
+                "Fin", Operacion, traceId, estado, cronometro.ElapsedMilliseconds);
+            return resultado;
+        }
+
+        private async Task<ResultadoCobroDto> CobrarAsync(Reserva reserva, decimal monto, string traceId)
+        {
             var request = new ProcesarPagoRequest
             {
                 ReservaId = reserva.ReservaId.ToString(),
                 SolicitudId = reserva.SolicitudId.ToString(),
                 UsuarioId = reserva.UsuarioId,
-                Monto = (double)monto,
-                TraceId = traceId
+                // El precio es numeric(18,2): por 100 da un entero exacto de centavos.
+                // checked: si no entrara en un long, falla en vez de cobrar un monto equivocado.
+                MontoCentavos = checked((long)decimal.Round(monto * 100m, 0, MidpointRounding.AwayFromZero))
             };
 
-            // Propaga el TraceId en los metadatos gRPC (headers HTTP/2) para mantener la cadena de trazabilidad
-            var headers = new Metadata
-            {
-                { "x-trace-id", traceId },
-                { "x-solicitud-id", reserva.SolicitudId.ToString() }
-            };
-
+            string token;
             try
             {
-                // Ejecuta la llamada gRPC bajo la proteccion combinada de las politicas de Polly (Timeout + Reintentos)
-                ProcesarPagoResponse response = await _resiliencePolicy.ExecuteAsync(async () =>
-                {
-                    return await _paymentClient.ProcesarPagoAsync(
-                        request,
-                        headers: headers,
-                        deadline: DateTime.UtcNow.AddSeconds(5));
-                });
+                // Fuera del pipeline: si Keycloak falla, no es culpa de Payment y no debe abrir su
+                // circuito. Con su propio tope, para que un Keycloak colgado no frene la reserva.
+                using var limite = new CancellationTokenSource(EsperaMaximaDelToken);
+                token = await _tokenProvider.ObtenerTokenAsync(limite.Token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[KEYCLOAK] TraceId={TraceId} No se pudo obtener el token para llamar a Payment", traceId);
+                return Caido("No se pudo obtener el token de Keycloak para llamar a Payment");
+            }
 
-                // Evalua si la pasarela de pagos aprobo el cobro del monto de la reserva
-                if (response.Exitoso)
+            ResilienceContext contexto = ResilienceContextPool.Shared.Get();
+            contexto.Properties.Set(ResilienciaPago.ClaveTraceId, traceId);
+            try
+            {
+                ProcesarPagoResponse response = await _pipeline.ExecuteAsync(async ctx =>
                 {
-                    _logger.LogInformation(
-                        "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Cobro procesado exitosamente por Payment API. TraceId: {TraceId}, TransaccionId: {TransaccionId}",
-                        traceId, response.TransaccionId);
-
-                    return new ResultadoCobroDto
+                    // La metadata se arma en cada intento. El token va en el header authorization:
+                    // las CallCredentials de gRPC solo se mandan sobre TLS, y dentro de Docker la
+                    // llamada va sin TLS (h2c).
+                    var headers = new Metadata
                     {
-                        Exitoso = true,
-                        ServicioCaido = false,
-                        TransaccionId = response.TransaccionId,
-                        ErrorMensaje = null
+                        { "authorization", $"Bearer {token}" },
+                        { "x-trace-id", traceId }
                     };
-                }
-                else
-                {
-                    // Cobro rechazado por motivo de negocio (fondos insuficientes, tarjeta expirada, etc.)
-                    _logger.LogWarning(
-                        "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Cobro rechazado por motivo de negocio en Payment API. TraceId: {TraceId}, Detalle: {MensajeError}",
-                        traceId, response.MensajeError);
 
+                    // ctx.CancellationToken es el de Polly: cuando vence un timeout, cancela la llamada
+                    return await _paymentClient.ProcesarPagoAsync(request, headers, cancellationToken: ctx.CancellationToken);
+                }, contexto);
+
+                return Mapear(response, traceId);
+            }
+            catch (BrokenCircuitException)
+            {
+                // Puede llegar antes del primer intento o después de algunos: el circuito se abrió
+                // en el medio y cortó los reintentos que quedaban
+                _logger.LogWarning("[POLLY] TraceId={TraceId} Circuito abierto: no se hacen más intentos a Payment", traceId);
+                return Caido("Payment no está disponible (circuito abierto)");
+            }
+            catch (TimeoutRejectedException)
+            {
+                _logger.LogError("[POLLY] TraceId={TraceId} Payment no respondió a tiempo", traceId);
+                return Caido("Payment no respondió a tiempo");
+            }
+            catch (RpcException ex)
+            {
+                if (ex.StatusCode == StatusCode.Unauthenticated)
+                {
+                    // El token pudo vencer o haber sido revocado: el próximo cobro pide uno nuevo
+                    _tokenProvider.Invalidar();
+                }
+                // El status puede venir de Payment o del propio cliente (por ejemplo, Unavailable
+                // cuando no hay nadie escuchando): el detalle dice cuál
+                _logger.LogError(
+                    "[gRPC] TraceId={TraceId} La llamada a Payment falló con {StatusCode}: {Detalle}",
+                    traceId, ex.StatusCode, ex.Status.Detail);
+                return Caido($"Error de comunicación con Payment ({ex.StatusCode})");
+            }
+            catch (Exception ex)
+            {
+                // Resguardo ante cualquier otra falla (red, serialización): nunca se propaga
+                _logger.LogError(ex, "[gRPC] TraceId={TraceId} Falla inesperada al llamar a Payment", traceId);
+                return Caido("Error inesperado al llamar a Payment");
+            }
+            finally
+            {
+                ResilienceContextPool.Shared.Return(contexto);
+            }
+        }
+
+        private ResultadoCobroDto Mapear(ProcesarPagoResponse response, string traceId)
+        {
+            switch (response.Resultado)
+            {
+                case ResultadoPago.Aprobado:
+                    return new ResultadoCobroDto { Exitoso = true, TransaccionId = response.TransaccionId };
+
+                case ResultadoPago.RechazadoFondosInsuficientes:
+                    // Error de negocio: Payment funcionó y dijo que no. Es PagoFallido, no PagoNoDisponible
+                    _logger.LogWarning(
+                        "[gRPC] TraceId={TraceId} Payment rechazó el cobro: {Motivo}", traceId, response.MensajeError);
                     return new ResultadoCobroDto
                     {
                         Exitoso = false,
@@ -124,72 +176,16 @@ namespace BookingAPI.BLL.Gateways
                         TransaccionId = response.TransaccionId,
                         ErrorMensaje = response.MensajeError
                     };
-                }
-            }
-            catch (TimeoutRejectedException ex)
-            {
-                // [JUSTIFICACIÓN TEÓRICA - DEGRADACIÓN ELEGANTE ANTE TIMEOUT]
-                // Si Payment no responde en el tiempo limite, se degrada a ServicioCaido para rechazar con motivo 'PagoNoDisponible'
-                _logger.LogError(
-                    ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Timeout comunicando con Payment gRPC API. Degradando elegantemente a PagoNoDisponible. TraceId: {TraceId}, SolicitudId: {SolicitudId}",
-                    traceId, reserva.SolicitudId);
 
-                return new ResultadoCobroDto
-                {
-                    Exitoso = false,
-                    ServicioCaido = true,
-                    TransaccionId = null,
-                    ErrorMensaje = "Tiempo de espera agotado al conectar con el microservicio de pagos (Timeout)."
-                };
-            }
-            catch (RpcException ex)
-            {
-                // [JUSTIFICACIÓN TEÓRICA - DEGRADACIÓN ELEGANTE ANTE CAÍDA DEL SERVICIO]
-                // Si el microservicio esta caido o inalcanzable, se previene propagar un HTTP 500 no controlado
-                _logger.LogError(
-                    ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Falla RPC comunicando con Payment gRPC API (Status: {StatusCode}). TraceId: {TraceId}, SolicitudId: {SolicitudId}",
-                    ex.StatusCode, traceId, reserva.SolicitudId);
-
-                return new ResultadoCobroDto
-                {
-                    Exitoso = false,
-                    ServicioCaido = true,
-                    TransaccionId = null,
-                    ErrorMensaje = $"Error de comunicación con Payment gRPC API: {ex.Status.Detail}"
-                };
-            }
-            catch (Exception ex)
-            {
-                // Captura de resguardo ante cualquier otro fallo de conexion o serializacion
-                _logger.LogError(
-                    ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Excepción inesperada en invocación a Payment. Degradando elegantemente. TraceId: {TraceId}, SolicitudId: {SolicitudId}",
-                    traceId, reserva.SolicitudId);
-
-                return new ResultadoCobroDto
-                {
-                    Exitoso = false,
-                    ServicioCaido = true,
-                    TransaccionId = null,
-                    ErrorMensaje = $"Error inesperado al conectar con el servicio de pagos: {ex.Message}"
-                };
+                default:
+                    // Un resultado que el contrato no define es una falla técnica, no un rechazo
+                    _logger.LogError(
+                        "[gRPC] TraceId={TraceId} Payment devolvió un resultado desconocido: {Resultado}", traceId, response.Resultado);
+                    return Caido($"Payment devolvió un resultado desconocido ({response.Resultado})");
             }
         }
 
-        // Filtra los codigos gRPC que representan fallas de infraestructura o temporales que justifican un reintento
-        private static bool EsErrorTransitorio(StatusCode statusCode)
-        {
-            return statusCode switch
-            {
-                StatusCode.Unavailable => true,
-                StatusCode.DeadlineExceeded => true,
-                StatusCode.ResourceExhausted => true,
-                StatusCode.Internal => true,
-                StatusCode.Aborted => true,
-                _ => false
-            };
-        }
+        private static ResultadoCobroDto Caido(string mensaje) =>
+            new() { Exitoso = false, ServicioCaido = true, ErrorMensaje = mensaje };
     }
 }
