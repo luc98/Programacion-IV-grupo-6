@@ -1,0 +1,19 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar sesión";
+}
+
+<section class="login-page" aria-labelledby="login-title">
+    <h1 id="login-title">Iniciar sesión</h1>
+    <p class="text-muted">Elegí cómo ingresar</p>
+
+    <div class="card text-start">
+        <h2 class="card-header h6 mb-0">Cuenta externa</h2>
+        <div class="card-body">
+            <form asp-controller="Account" asp-action="Login" method="post">
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <button type="submit" class="btn btn-primary">Continuar con Google</button>
+            </form>
+        </div>
+    </div>
+</section>

@@ -3,12 +3,15 @@ using AvailabilitySite.Application.Common;
 using AvailabilitySite.Application.Reservations;
 using AvailabilitySite.Web.Models;
 using AvailabilitySite.Web.Presentation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AvailabilitySite.Web.Controllers;
 
 // Envío y seguimiento de solicitudes. El controller no decide reglas de negocio:
 // delega en los casos de uso de Application y solo traduce resultados a pantallas.
+// Todas las acciones requieren sesión: sin sesión se redirige al login de Keycloak.
+[Authorize]
 public class ReservationsController(
     IGetEventAvailabilityUseCase getAvailability,
     IRequestReservationUseCase requestReservation,
@@ -91,12 +94,11 @@ public class ReservationsController(
         if (id is not { } requestId || requestId == Guid.Empty)
             return StatusPage(StatusCodes.Status404NotFound, "Solicitud inexistente", "No encontramos esa solicitud.");
 
-        var result = await getStatus.ExecuteAsync(requestId, cancellationToken);
-        if (result.IsSuccess)
-            return View(new TrackingPageViewModel { RequestId = requestId, Tracking = await TrackingViewAsync(result.Value!, cancellationToken) });
+        var (tracking, error) = await LoadTrackingAsync(requestId, cancellationToken);
+        if (tracking is not null)
+            return View(new TrackingPageViewModel { RequestId = requestId, Tracking = tracking });
 
-        var error = result.Error!;
-        return error.Type switch
+        return error!.Type switch
         {
             ApplicationErrorType.NotFound => StatusPage(StatusCodes.Status404NotFound, "Solicitud inexistente", error.Message,
                 links: [new PageLink("Ver mis solicitudes", Url.Action(nameof(Index))!), new PageLink("Ir a eventos", Url.Action("Index", "Home")!)]),
@@ -110,19 +112,24 @@ public class ReservationsController(
     }
 
     // Endpoint de lectura para el polling. Devuelve el fragmento HTML del estado (lo renderiza el servidor,
-    // así los textos y reglas no se duplican en JavaScript). Usa el mismo caso de uso que la pantalla.
+    // así los textos y reglas no se duplican en JavaScript). Usa la misma consulta que la pantalla.
+    // Lo llama JavaScript: sin sesión responde 401 (el script avisa) en vez de redirigir al login.
     [HttpGet]
+    [AllowAnonymous]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> TrackStatus(Guid? id, CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return PlainStatus(StatusCodes.Status401Unauthorized, "Necesitás iniciar sesión.");
+
         if (id is not { } requestId || requestId == Guid.Empty)
             return PlainStatus(StatusCodes.Status404NotFound, "Solicitud inexistente.");
 
-        var result = await getStatus.ExecuteAsync(requestId, cancellationToken);
-        if (result.IsSuccess)
-            return PartialView("_TrackingPanel", await TrackingViewAsync(result.Value!, cancellationToken));
+        var (tracking, error) = await LoadTrackingAsync(requestId, cancellationToken);
+        if (tracking is not null)
+            return PartialView("_TrackingPanel", tracking);
 
-        return result.Error!.Type switch
+        return error!.Type switch
         {
             ApplicationErrorType.Unauthenticated => PlainStatus(StatusCodes.Status401Unauthorized, "Necesitás iniciar sesión."),
             ApplicationErrorType.NotFound => PlainStatus(StatusCodes.Status404NotFound, "Solicitud inexistente."),
@@ -145,8 +152,13 @@ public class ReservationsController(
             Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
 
         var rows = new List<MyRequestRow>();
-        foreach (var request in result.IsSuccess ? result.Value! : [])
+        foreach (var summary in result.IsSuccess ? result.Value! : [])
         {
+            // El listado sale de Availability y no trae el estado de Booking: se consulta para cada solicitud.
+            // Si Booking todavía no la conoce o no responde, se muestra como pendiente.
+            var status = await getStatus.ExecuteAsync(summary.RequestId, cancellationToken);
+            var request = status.IsSuccess ? summary with { BookingStatus = status.Value!.BookingStatus } : summary;
+
             var ev = await lookup.FindEventAsync(request.EventId, cancellationToken);
             var seatLabel = await lookup.SeatLabelAsync(request.EventId, request.SeatId, cancellationToken);
             rows.Add(new MyRequestRow(request, ev?.Name ?? "Evento", seatLabel));
@@ -156,6 +168,45 @@ public class ReservationsController(
     }
 
     // ------------------------------------------------------------------ helpers
+
+    // Estado de una solicitud del usuario actual.
+    // - Solo se muestran solicitudes propias: se buscan entre las del usuario guardadas en Availability.
+    // - Si Booking todavía no la conoce (el Outbox aún no la publicó o Booking no la procesó), está pendiente.
+    private async Task<(TrackingView? Tracking, ApplicationError? Error)> LoadTrackingAsync(Guid requestId, CancellationToken cancellationToken)
+    {
+        var mine = await listMine.ExecuteAsync(cancellationToken);
+        if (!mine.IsSuccess)
+            return (null, mine.Error);
+
+        var own = mine.Value!.FirstOrDefault(r => r.RequestId == requestId);
+        if (own is null)
+            return (null, new ApplicationError(ApplicationErrorType.NotFound, "request_not_found", "No encontramos esa solicitud entre las tuyas."));
+
+        var status = await getStatus.ExecuteAsync(requestId, cancellationToken);
+        if (status.IsSuccess)
+            return (await TrackingViewAsync(status.Value!, cancellationToken), null);
+
+        return status.Error!.Type switch
+        {
+            ApplicationErrorType.NotFound => (await TrackingViewAsync(PendingTracking(own), cancellationToken), null),
+            // El usuario ya tiene sesión: un rechazo de autenticación acá es de Availability frente a Booking
+            // (token de servicio), no del usuario. Se trata como servicio no disponible para no pedir login de nuevo.
+            ApplicationErrorType.Unauthenticated or ApplicationErrorType.Forbidden => (null, new ApplicationError(
+                ApplicationErrorType.DependencyUnavailable, status.Error.Code, "No pudimos consultar el estado de la reserva en este momento.")),
+            _ => (null, status.Error),
+        };
+    }
+
+    private static ReservationTrackingDto PendingTracking(ReservationRequestSummaryDto request) => new(
+        ReservaId: Guid.Empty,
+        RequestId: request.RequestId,
+        EventId: request.EventId,
+        SeatId: request.SeatId,
+        RequestStatus: request.RequestStatus,
+        BookingStatus: null,
+        RejectionReason: null,
+        CreatedAtUtc: request.CreatedAt.UtcDateTime,
+        ExpirationAtUtc: default);
 
     private async Task<TrackingView> TrackingViewAsync(ReservationTrackingDto tracking, CancellationToken cancellationToken) => new()
     {

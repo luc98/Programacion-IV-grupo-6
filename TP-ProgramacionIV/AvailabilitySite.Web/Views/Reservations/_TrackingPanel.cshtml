@@ -24,7 +24,7 @@
             <p>Esta página se actualiza sola hasta que se conozca el resultado del pago.</p>
             break;
 
-        case TrackingState.Rejected when tracking.RejectionReason is { } reason:
+        case TrackingState.Rejected when StatusTexts.RejectionReasonOrNull(tracking.RejectionReason) is { } reason:
             var rejection = StatusTexts.ForRejection(reason);
             <p><strong>@rejection.ShortLabel.</strong> @rejection.Description</p>
             break;

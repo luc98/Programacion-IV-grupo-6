@@ -1,3 +1,8 @@
+@{
+    // Con MapInboundClaims = false los claims llegan con los nombres de Keycloak.
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var userName = User.FindFirst("name")?.Value ?? User.FindFirst("preferred_username")?.Value ?? User.FindFirst("email")?.Value;
+}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -12,11 +17,6 @@
 <body>
     <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
     <header>
-        <div class="demo-banner" role="note">
-            <div class="container-fluid">
-                <strong>Datos de ejemplo.</strong> Las pantallas usan los contratos de Application; por ahora los responde un mock.
-            </div>
-        </div>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3" aria-label="Principal">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Reserva de asientos</a>
@@ -33,6 +33,22 @@
                             <a class="nav-link text-dark" asp-controller="Reservations" asp-action="Index">Mis solicitudes</a>
                         </li>
                     </ul>
+                    <div class="navbar-session d-flex flex-wrap align-items-center gap-2">
+                        @if (signedIn)
+                        {
+                            <span class="navbar-text text-dark">
+                                <span class="visually-hidden">Sesión iniciada como </span>@(userName ?? "Mi cuenta")
+                            </span>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cerrar sesión</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-primary" asp-controller="Account" asp-action="Login"
+                               asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Iniciar sesión</a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>

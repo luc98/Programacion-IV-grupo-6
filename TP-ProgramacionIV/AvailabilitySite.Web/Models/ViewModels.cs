@@ -21,6 +21,11 @@ public sealed class StatusPageViewModel
     public IReadOnlyList<PageLink> Links { get; init; } = [];
 }
 
+public sealed class LoginViewModel
+{
+    public required string ReturnUrl { get; init; }
+}
+
 public sealed class EventListViewModel
 {
     public IReadOnlyList<EventSummaryDto> Events { get; init; } = [];
