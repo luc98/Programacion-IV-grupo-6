@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.85.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- Npgsql 10.0.3 trae EF Core 10.0.4. Se fija la misma versión que Design
+         para que los tests no mezclen dos versiones de EF. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Expressions" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Contrato compartido con Booking: un solo .proto fuera de los proyectos.
+         Payment genera solo el servidor. Access="Internal" deja los tipos del
+         contrato como detalle interno de este proyecto, así los tests pueden
+         generar su propio cliente sin chocar con ellos. -->
+    <Protobuf Include="..\Protos\payment\v1\payment.proto" GrpcServices="Server" Access="Internal" Link="Protos\payment.proto" />
+  </ItemGroup>
+
+</Project>
