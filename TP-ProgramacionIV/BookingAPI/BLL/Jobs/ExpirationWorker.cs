@@ -81,7 +81,7 @@ namespace BookingAPI.BLL.Jobs
             _logger.LogInformation("[EXPIRATION WORKER] Proceso de segundo plano finalizado.");
         }
 
-        private async Task ProcesarReservasVencidasAsync(CancellationToken cancellationToken)
+        public async Task ProcesarReservasVencidasAsync(CancellationToken cancellationToken = default)
         {
             // Crea un ambito scoped para instanciar el repositorio y el DbContext de forma limpia
             using (IServiceScope scope = _scopeFactory.CreateScope())
@@ -110,16 +110,25 @@ namespace BookingAPI.BLL.Jobs
                         break;
                     }
 
-                    // [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Trazabilidad de la transición a 'Vencida'
-                    string traceId = Guid.NewGuid().ToString("N");
+                    // Reutiliza el SolicitudId como TraceId de correlación con la solicitud original
+                    string traceId = reserva.SolicitudId.ToString();
 
-                    // Cambia el estado a Vencida (4): esto libera de inmediato el asiento en la base de datos
-                    reserva.Estado = EstadoReserva.Vencida;
-                    await reservaRepository.ActualizarAsync(reserva);
+                    using (_logger.BeginScope(new Dictionary<string, object> { ["TraceId"] = traceId }))
+                    {
+                        // Cambia el estado a Vencida (4): esto libera de inmediato el asiento en la base de datos
+                        reserva.Estado = EstadoReserva.Vencida;
+                        await reservaRepository.ActualizarAsync(reserva);
 
-                    _logger.LogInformation(
-                        "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Reserva {ReservaId} marcada como VENCIDA por expiración de TTL ({VencimientoUtc}). Asiento {AsientoId} liberado. SolicitudId: {SolicitudId}, TraceId: {TraceId}",
-                        reserva.ReservaId, reserva.FechaVencimientoUtc, reserva.AsientoId, reserva.SolicitudId, traceId);
+                        _logger.LogInformation(
+                            "{Etapa} {Operacion} TraceId={TraceId} SolicitudId={SolicitudId} ReservaId={ReservaId} AsientoId={AsientoId} Resultado={Resultado}",
+                            "Fin",
+                            "ExpirarReservaTtl",
+                            traceId,
+                            reserva.SolicitudId,
+                            reserva.ReservaId,
+                            reserva.AsientoId,
+                            "Vencida");
+                    }
                 }
             }
         }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using BookingAPI.BLL.DTOs;
@@ -52,7 +53,7 @@ namespace BookingAPI.Presentation.Listeners
                 {
                     _logger.LogWarning(
                         "[SERVICE BUS - LISTENER] Cadena de conexión no configurada o en modo plantilla. El listener permanecerá inactivo en espera pasiva.");
-                    
+
                     await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
                     return;
                 }
@@ -117,18 +118,18 @@ namespace BookingAPI.Presentation.Listeners
 
         private async Task ProcesarMensajeAsync(ProcessMessageEventArgs args)
         {
+            var cronometro = Stopwatch.StartNew();
             string messageBody = args.Message.Body.ToString();
 
-            // [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Captura de trazabilidad desde propiedades del mensaje
-            string traceId = args.Message.ApplicationProperties.TryGetValue("TraceId", out var traceIdProp)
-                ? traceIdProp?.ToString() ?? Guid.NewGuid().ToString("N")
-                : Guid.NewGuid().ToString("N");
-
-            string correlationId = args.Message.CorrelationId ?? args.Message.MessageId;
-
-            _logger.LogInformation(
-                "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Mensaje recibido desde Service Bus. TraceId: {TraceId}, CorrelationId: {CorrelationId}, SequenceNumber: {SeqNum}",
-                traceId, correlationId, args.Message.SequenceNumber);
+            // Según la convención grupal (docs/plantilla-de-logs.md), se reutiliza el TraceId recibido
+            // en ApplicationProperties["TraceId"] o CorrelationId; si no vino, se usa el SolicitudId del mensaje.
+            string? incomingTraceId = args.Message.ApplicationProperties.TryGetValue("TraceId", out var traceIdProp)
+                ? traceIdProp?.ToString()
+                : null;
+            if (string.IsNullOrWhiteSpace(incomingTraceId))
+            {
+                incomingTraceId = args.Message.CorrelationId;
+            }
 
             SolicitudReservaDto? solicitud;
             try
@@ -146,48 +147,61 @@ namespace BookingAPI.Presentation.Listeners
             }
             catch (JsonException ex)
             {
-                _logger.LogError(
-                    ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Mensaje malformado o corrupto. Moviendo a Dead Letter Queue (DLQ). TraceId: {TraceId}",
-                    traceId);
+                string dlqTraceId = !string.IsNullOrWhiteSpace(incomingTraceId) ? incomingTraceId : args.Message.MessageId;
+                using (_logger.BeginScope(new Dictionary<string, object> { ["TraceId"] = dlqTraceId }))
+                {
+                    _logger.LogError(
+                        ex,
+                        "{Etapa} {Operacion} TraceId={TraceId} Resultado={Resultado} DuracionMs={DuracionMs}",
+                        "Fin", "ProcesarMensaje", dlqTraceId, "DeadLetter", cronometro.ElapsedMilliseconds);
+                }
 
                 // Si el mensaje es invalido, se desvia a la Dead Letter Queue (DLQ) para que no bloquee la cola
                 await args.DeadLetterMessageAsync(args.Message, "MensajeCorrupto", ex.Message);
                 return;
             }
 
-            try
+            string traceId = !string.IsNullOrWhiteSpace(incomingTraceId)
+                ? incomingTraceId
+                : (!string.IsNullOrWhiteSpace(solicitud.TraceId) ? solicitud.TraceId : solicitud.SolicitudId.ToString());
+
+            solicitud.TraceId = traceId;
+
+            using (_logger.BeginScope(new Dictionary<string, object> { ["TraceId"] = traceId }))
             {
-                // [JUSTIFICACIÓN TEÓRICA - CREACIÓN DE ÁMBITO SCOPED EN BACKGROUND WORKER]
-                // Como el listener es Singleton, crea un scope independiente para resolver IBookingService y DbContext
-                using (IServiceScope scope = _scopeFactory.CreateScope())
+                _logger.LogInformation(
+                    "{Etapa} {Operacion} TraceId={TraceId} SolicitudId={SolicitudId} SequenceNumber={SeqNum}",
+                    "Inicio", "ProcesarMensaje", traceId, solicitud.SolicitudId, args.Message.SequenceNumber);
+
+                try
                 {
-                    IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                    // [JUSTIFICACIÓN TEÓRICA - CREACIÓN DE ÁMBITO SCOPED EN BACKGROUND WORKER]
+                    // Como el listener es Singleton, crea un scope independiente para resolver IBookingService y DbContext
+                    using (IServiceScope scope = _scopeFactory.CreateScope())
+                    {
+                        IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+                        // Ejecuta el flujo transaccional completo: apartar asiento, cobrar gRPC y persistir
+                        await bookingService.ProcesarSolicitudReservaAsync(solicitud);
+                    }
+
+                    // Asienta el mensaje en Service Bus (ACK) eliminandolo de la cola tras procesarlo con exito
+                    await args.CompleteMessageAsync(args.Message);
 
                     _logger.LogInformation(
-                        "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Delegando solicitud {SolicitudId} a BookingService. TraceId: {TraceId}",
-                        solicitud.SolicitudId, traceId);
-
-                    // Ejecuta el flujo transaccional completo: apartar asiento, cobrar gRPC y persistir
-                    await bookingService.ProcesarSolicitudReservaAsync(solicitud);
+                        "{Etapa} {Operacion} TraceId={TraceId} SolicitudId={SolicitudId} Resultado={Resultado} DuracionMs={DuracionMs}",
+                        "Fin", "ProcesarMensaje", traceId, solicitud.SolicitudId, "Completed", cronometro.ElapsedMilliseconds);
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "{Etapa} {Operacion} TraceId={TraceId} SolicitudId={SolicitudId} Resultado={Resultado} DuracionMs={DuracionMs}",
+                        "Fin", "ProcesarMensaje", traceId, solicitud.SolicitudId, "Retry", cronometro.ElapsedMilliseconds);
 
-                // Asienta el mensaje en Service Bus (ACK) eliminandolo de la cola tras procesarlo con exito
-                await args.CompleteMessageAsync(args.Message);
-
-                _logger.LogInformation(
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Procesamiento completado y mensaje asentado (ACK). TraceId: {TraceId}, SolicitudId: {SolicitudId}",
-                    traceId, solicitud.SolicitudId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Error durante el procesamiento de la reserva. Liberando mensaje para reintento. TraceId: {TraceId}, SolicitudId: {SolicitudId}",
-                    traceId, solicitud.SolicitudId);
-
-                // Ante error transitorio, se libera el mensaje para que Service Bus aplique su politica de reintentos
-                await args.AbandonMessageAsync(args.Message);
+                    // Ante error transitorio, se libera el mensaje para que Service Bus aplique su politica de reintentos
+                    await args.AbandonMessageAsync(args.Message);
+                }
             }
         }
 

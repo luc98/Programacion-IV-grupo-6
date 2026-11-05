@@ -1,0 +1,114 @@
+@model AvailabilityViewModel
+@inject DateTimeDisplay Dates
+@{
+    var ev = Model.Event;
+    ViewData["Title"] = ev.Name;
+    var available = StatusTexts.ForSeat(true);
+    var occupied = StatusTexts.ForSeat(false);
+}
+
+<nav aria-label="Ruta de navegación">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Eventos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@ev.Name</li>
+    </ol>
+</nav>
+
+<header class="mb-3">
+    <h1>@ev.Name</h1>
+    <p class="mb-1">@ev.Venue</p>
+    <p class="text-body-secondary">
+        <time datetime="@DateTimeDisplay.Iso(ev.StartsAt)">@Dates.Long(ev.StartsAt)</time> (@Dates.ZoneLabel)
+    </p>
+</header>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <p class="mb-0 small text-body-secondary">
+        Disponibilidad consultada a las <time datetime="@DateTimeDisplay.Iso(Model.RetrievedAt)">@Dates.Time(Model.RetrievedAt)</time>.
+    </p>
+    <a class="btn btn-sm btn-outline-secondary" data-loading-text="Actualizando…"
+       asp-action="Availability" asp-route-id="@ev.EventId" asp-route-seat="@Model.PreselectedSeat">Actualizar disponibilidad</a>
+</div>
+
+@if (Model.PreselectedSeatUnavailableLabel is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        El asiento @Model.PreselectedSeatUnavailableLabel que habías elegido ya no está disponible. Elegí otro.
+    </div>
+}
+
+@if (Model.Seats.Count == 0)
+{
+    <p class="alert alert-info">Este evento todavía no tiene asientos publicados para reservar.</p>
+}
+else
+{
+    <ul class="seat-legend list-unstyled d-flex flex-wrap gap-3" aria-label="Referencias">
+        @foreach (var (text, count) in new[] { (available, Model.AvailableCount), (occupied, Model.OccupiedCount) })
+        {
+            <li class="d-flex align-items-center gap-2">
+                <span class="seat seat--@text.CssModifier seat--sample" aria-hidden="true"><span class="seat__icon">@text.Icon</span></span>
+                <span>@text.Label: <strong>@count</strong></span>
+            </li>
+        }
+    </ul>
+
+    <p class="small text-body-secondary">
+        La disponibilidad puede cambiar en cualquier momento. Vamos a volver a comprobarla antes de enviar tu solicitud.
+    </p>
+
+    <form method="get" asp-controller="Reservations" asp-action="Confirm" class="seat-form">
+        <input type="hidden" name="eventId" value="@ev.EventId" />
+        <fieldset>
+            <legend class="h5">Elegí un asiento disponible</legend>
+            <div class="seat-map" role="presentation">
+                <div class="seat-map__stage" aria-hidden="true">Escenario</div>
+                @{ var first = true; var rowIndex = 0; }
+                @foreach (var row in Model.Rows)
+                {
+                    var rowLabelId = $"fila-{rowIndex++}";
+                    <div class="seat-row" role="group" aria-labelledby="@rowLabelId">
+                        <span class="seat-row__label" id="@rowLabelId">@(row.Key == "" ? "Asientos" : $"Fila {row.Key}")</span>
+                        <ul class="seat-row__seats list-unstyled">
+                            @foreach (var cell in row)
+                            {
+                                var seat = cell.Seat;
+                                var text = StatusTexts.ForSeat(seat.IsAvailable);
+                                var inputId = $"asiento-{seat.SeatId}";
+                                <li>
+                                    @if (seat.IsAvailable)
+                                    {
+                                        <input type="radio" class="seat-input" name="seatId" id="@inputId" value="@seat.SeatId"
+                                               checked="@(Model.PreselectedSeat == seat.SeatId)" required="@first" />
+                                        <label for="@inputId" class="seat seat--@text.CssModifier" title="Asiento @seat.Label: @text.Label.ToLowerInvariant()">
+                                            <span class="seat__number" aria-hidden="true">@cell.Number</span>
+                                            <span class="visually-hidden">Asiento @seat.Label, @text.Label.ToLowerInvariant()</span>
+                                        </label>
+                                        first = false;
+                                    }
+                                    else
+                                    {
+                                        <span class="seat seat--@text.CssModifier" title="Asiento @seat.Label: @text.Label.ToLowerInvariant()">
+                                            <span class="seat__number" aria-hidden="true">@cell.Number</span>
+                                            <span class="seat__icon" aria-hidden="true">@text.Icon</span>
+                                            <span class="visually-hidden">Asiento @seat.Label, @text.Label.ToLowerInvariant() (no se puede elegir)</span>
+                                        </span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </fieldset>
+
+        @if (Model.AvailableCount == 0)
+        {
+            <p class="alert alert-info mt-3">No quedan asientos disponibles en este momento. Podés actualizar más tarde: las retenciones vencidas liberan asientos.</p>
+        }
+        else
+        {
+            <button type="submit" class="btn btn-primary mt-3">Continuar con el asiento elegido</button>
+        }
+    </form>
+}
