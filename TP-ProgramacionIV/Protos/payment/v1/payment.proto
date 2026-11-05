@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+// Contrato entre Booking (cliente) y Payment (servidor). Es contract-first: este
+// archivo es la fuente de verdad y Grpc.Tools genera el código de los dos lados.
+// Vive fuera de los proyectos para que no haya dos copias que se desincronicen;
+// cada csproj lo incluye con Link.
+//
+// El "v1" del package permite publicar un v2 incompatible sin romper a los
+// clientes que todavía usan este.
+package payment.v1;
+
+option csharp_namespace = "Grupo6.Payment.Contracts.V1";
+
+service PaymentService {
+  // Cobra una reserva retenida. Es idempotente por reserva_id: si el mismo cobro
+  // llega dos veces (por ejemplo, un reintento de Polly), devuelve el resultado
+  // guardado sin volver a cobrar.
+  rpc ProcesarPago (ProcesarPagoRequest) returns (ProcesarPagoResponse);
+}
+
+message ProcesarPagoRequest {
+  string reserva_id = 1;    // Guid de la reserva en Booking. Es la clave de idempotencia
+  string solicitud_id = 2;  // Guid de la solicitud original de Availability
+  string usuario_id = 3;
+
+  // 4 y 5 eran `double monto` y `trace_id` en el primer borrador. Quedan
+  // reservados para que nadie los reuse con otro significado: el monto pasó a
+  // centavos y el TraceId viaja en la metadata `x-trace-id`.
+  reserved 4, 5;
+  reserved "monto", "trace_id";
+
+  // $1.234,56 viaja como 123456. Un double no representa exacto valores como
+  // 0,10; un entero de centavos sí.
+  int64 monto_centavos = 6;
+}
+
+enum ResultadoPago {
+  RESULTADO_PAGO_UNSPECIFIED = 0;
+  RESULTADO_PAGO_APROBADO = 1;
+  RESULTADO_PAGO_RECHAZADO_FONDOS_INSUFICIENTES = 2;
+}
+
+// Un rechazo de negocio (fondos insuficientes) es una respuesta OK con su
+// resultado, y en Booking termina en PagoFallido. Las fallas técnicas no viajan
+// acá: llegan como status gRPC (Unavailable, Internal...) y terminan en
+// PagoNoDisponible.
+message ProcesarPagoResponse {
+  reserved 1, 4;
+  reserved "exitoso", "codigo_respuesta";
+
+  string transaccion_id = 2; // Id del pago en Payment
+  string mensaje_error = 3;  // Motivo legible cuando el pago no se aprueba
+  ResultadoPago resultado = 5;
+}

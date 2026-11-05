@@ -6,4 +6,8 @@
   <Project Path="BookingAPI/BookingAPI.csproj" />
   <Project Path="AvailabilitySite.Application.Tests/AvailabilitySite.Application.Tests.csproj" Id="b9fcbf37-2b56-4b52-92c8-3cf1d3d32a7f" />
   <Project Path="AvailabilitySite.Infrastructure.IntegrationTests/AvailabilitySite.Infrastructure.IntegrationTests.csproj" />
+  <Project Path="BookingAPI.Tests/BookingAPI.Tests.csproj" />
+  <Project Path="BookingAPI/BookingAPI.csproj" />
+  <Project Path="PaymentAPI.Tests/PaymentAPI.Tests.csproj" />
+  <Project Path="PaymentAPI/PaymentAPI.csproj" />
 </Solution>
