@@ -93,6 +93,17 @@ services:
       - booking_network
     restart: unless-stopped
 
+  # --- API DE NOTIFICACIONES (Worker Service Dupla 4) ---
+  notification-service:
+    build: ./TP-ProgramacionIV/NotificationService
+    image: notification-service:local
+    container_name: notification_service
+    ports:
+      - "127.0.0.1:5050:5050"
+    networks:
+      - booking_network
+    restart: unless-stopped
+
 networks:
   booking_network:
     driver: bridge
