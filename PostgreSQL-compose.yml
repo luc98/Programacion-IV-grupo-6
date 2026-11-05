@@ -1,0 +1,16 @@
+services:
+  postgres-booking:
+    image: postgres:16-alpine
+    container_name: postgres-booking
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: BookingDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_booking_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_booking_data:
