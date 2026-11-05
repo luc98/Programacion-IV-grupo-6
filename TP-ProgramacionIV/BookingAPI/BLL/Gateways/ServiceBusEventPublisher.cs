@@ -59,21 +59,24 @@ namespace BookingAPI.BLL.Gateways
         }
 
         // Emite el evento asincrono al crear la reserva en estado Retenida con su fecha de vencimiento
-        public async Task PublicarReservaCreadaAsync(Reserva reserva)
+        public async Task PublicarReservaCreadaAsync(Reserva reserva, string? traceId = null)
         {
-            await PublicarEventoAsync("ReservaCreada", reserva);
+            await PublicarEventoAsync("ReservaCreada", reserva, traceId);
         }
 
         // Emite el evento asincrono cuando el cobro fue completado con exito y la reserva pasa a Confirmada
-        public async Task PublicarReservaConfirmadaAsync(Reserva reserva)
+        public async Task PublicarReservaConfirmadaAsync(Reserva reserva, string? traceId = null)
         {
-            await PublicarEventoAsync("ReservaConfirmada", reserva);
+            await PublicarEventoAsync("ReservaConfirmada", reserva, traceId);
         }
 
-        private async Task PublicarEventoAsync(string tipoEvento, Reserva reserva)
+        private async Task PublicarEventoAsync(string tipoEvento, Reserva reserva, string? traceId)
         {
-            // [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Genera identificador de correlacion para el broker
-            string traceId = Guid.NewGuid().ToString("N");
+            // Reutiliza el TraceId recibido en la cadena de sucesos (con fallback a SolicitudId)
+            // para que NotificationService correlacione todos los logs con el mismo identificador.
+            string traceIdEfectivo = !string.IsNullOrWhiteSpace(traceId)
+                ? traceId
+                : reserva.SolicitudId.ToString();
 
             // Construye el contrato publico del evento desacoplando la entidad interna de PostgreSQL
             var eventoDto = new ReservaEventoPublicadoDto
@@ -88,19 +91,19 @@ namespace BookingAPI.BLL.Gateways
                 FechaCreacionUtc = reserva.FechaCreacionUtc,
                 FechaVencimientoUtc = reserva.FechaVencimientoUtc,
                 FechaEventoUtc = DateTime.UtcNow,
-                TraceId = traceId
+                TraceId = traceIdEfectivo
             };
 
             _logger.LogInformation(
-                "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Publicando evento '{TipoEvento}' a Azure Service Bus. Topic: {Topic}, SolicitudId: {SolicitudId}, ReservaId: {ReservaId}, TraceId: {TraceId}",
-                tipoEvento, _topicName, reserva.SolicitudId, reserva.ReservaId, traceId);
+                "[SERVICE BUS - PUBLISHER] Publicando evento '{TipoEvento}' en tópico '{Topic}'. TraceId={TraceId} SolicitudId={SolicitudId} ReservaId={ReservaId}",
+                tipoEvento, _topicName, traceIdEfectivo, reserva.SolicitudId, reserva.ReservaId);
 
             // Si estamos en entorno local sin conexion a Azure activa, se registra en consola y no se bloquea
             if (_sender is null)
             {
                 _logger.LogWarning(
-                    "[SERVICE BUS - PUBLISHER] Evento '{TipoEvento}' simulado exitosamente en log (Sender de Service Bus no conectado en entorno actual).",
-                    tipoEvento);
+                    "[SERVICE BUS - PUBLISHER] Evento '{TipoEvento}' simulado en log (Sender no conectado). TraceId={TraceId}",
+                    tipoEvento, traceIdEfectivo);
                 return;
             }
 
@@ -114,11 +117,11 @@ namespace BookingAPI.BLL.Gateways
                 {
                     Subject = tipoEvento,
                     ContentType = "application/json",
-                    CorrelationId = reserva.SolicitudId.ToString(),
+                    CorrelationId = traceIdEfectivo,
                     ApplicationProperties =
                     {
                         { "TipoEvento", tipoEvento },
-                        { "TraceId", traceId },
+                        { "TraceId", traceIdEfectivo },
                         { "SolicitudId", reserva.SolicitudId.ToString() }
                     }
                 };
@@ -127,15 +130,15 @@ namespace BookingAPI.BLL.Gateways
                 await _sender.SendMessageAsync(message);
 
                 _logger.LogInformation(
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Evento '{TipoEvento}' enviado a Azure Service Bus exitosamente. TraceId: {TraceId}",
-                    tipoEvento, traceId);
+                    "[SERVICE BUS - PUBLISHER] Evento '{TipoEvento}' enviado exitosamente. TraceId={TraceId}",
+                    tipoEvento, traceIdEfectivo);
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "// [DUPLA 4 - LOG DE AUDITORÍA / TRACEID]: Error al publicar evento '{TipoEvento}' a Azure Service Bus. TraceId: {TraceId}",
-                    tipoEvento, traceId);
+                    "[SERVICE BUS - PUBLISHER] Error al publicar evento '{TipoEvento}'. TraceId={TraceId}",
+                    tipoEvento, traceIdEfectivo);
             }
         }
 

@@ -8,5 +8,8 @@ namespace BookingAPI.BLL.DTOs
         public Guid EventoId { get; set; }
         public Guid AsientoId { get; set; }
         public string UsuarioId { get; set; } = string.Empty;
+
+        // Identificador de trazabilidad propagado desde Service Bus (si no se envia en el mensaje, se usa SolicitudId)
+        public string? TraceId { get; set; }
     }
 }
