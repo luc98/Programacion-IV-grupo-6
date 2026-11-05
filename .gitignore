@@ -1,0 +1,52 @@
+## Build results and compilation output
+[Bb]in/
+[Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+**/[Ll]ogs/
+
+## Visual Studio cache, layouts and user settings
+.vs/
+**/.vs/
+**/.vs/**
+*.user
+**/*.user
+*.userosscache
+**/*.userosscache
+*.sln.docstates
+**/*.sln.docstates
+*.suo
+**/*.suo
+*.userprefs
+**/*.userprefs
+*.dtbcache*
+**/*.dtbcache*
+*.vsidx
+**/*.vsidx
+
+## Visual Studio Code and Rider
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+**/.idea/
+*.DotSettings.user
+**/*.DotSettings.user
+
+## OS generated files
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+.DS_Store
+
+## Environment variables and secrets
+*.env
+*.env.local
+
+## Test results
+[Tt]est[Rr]esults/
+**/[Tt]est[Rr]esults/
