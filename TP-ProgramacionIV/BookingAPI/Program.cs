@@ -13,9 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Auditoria y Trazabilidad
-// Configurar para registrar el inicio y fin de la cadena de sucesos con TraceId / CorrelationId.
-
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHostedService<BookingDbInitializer>();
@@ -66,9 +63,15 @@ builder.Services.AddSingleton<ITokenProvider, KeycloakTokenProvider>();
 
 builder.Services.AddScoped<IPaymentGateway, PaymentGrpcGateway>();
 
-// [ROMÁN RANAURO - INTEGRACIÓN CON AZURE SERVICE BUS (PUB/SUB)]
-// Publicador de eventos hacia Notification Service (Punto 3.h del TP)
-builder.Services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
+// [ROMÁN RANAURO - CLIENTE HTTP TIPADO HACIA NOTIFICATION SERVICE (PUNTO 3.h)]
+// Resuelve IEventPublisher mediante HttpClient gestionado por IHttpClientFactory,
+// evitando agotamiento de sockets (socket exhaustion) y configurando la URL base del servicio.
+builder.Services.AddHttpClient<IEventPublisher, HttpNotificationPublisher>((sp, client) =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration["NotificationService:BaseUrl"] ?? "http://localhost:5050";
+    client.BaseAddress = new Uri(baseUrl);
+});
 
 // Listener en segundo plano (BackgroundService) para procesar solicitudes de reserva de Availability Site (Punto 4 del TP)
 builder.Services.AddHostedService<ServiceBusListener>();

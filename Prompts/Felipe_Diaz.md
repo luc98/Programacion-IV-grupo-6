@@ -90,4 +90,8 @@
 > Dejemos preparados los TraceId
 
 
+## Prompt 14
+> Hagamos la implementacion del @ServiceBusEventPublisher.cs como un HTTP POST hacia Notification Service ya que el profesor dijo que era solo conceptual pero al nosotros tenerlo ya implementado vamos a usarlo.
+> Hagamos la implementacion con try/catch con un timeout corto que loguee un warning si notification service esta caido o responde con error pero que la reserva NO se cancele y el flujo de Booking pueda finalizar con exito.
+
 
