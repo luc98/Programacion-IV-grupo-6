@@ -24,7 +24,7 @@ public static class StatusTexts
 {
     // Sin estado de Booking la solicitud todavía no fue procesada. Se aceptan también los nombres en inglés.
     public static TrackingState Interpret(ReservationRequestStatus requestStatus, string? bookingStatus) =>
-        bookingStatus?.Trim().ToLowerInvariant() switch
+        Normalize(bookingStatus) switch
         {
             null or "" => TrackingState.Pending,
             "retenida" or "held" => TrackingState.Held,
@@ -36,7 +36,7 @@ public static class StatusTexts
 
     // Booking manda "Ninguno" cuando no hay motivo de rechazo.
     public static string? RejectionReasonOrNull(string? reason) =>
-        string.IsNullOrWhiteSpace(reason) || reason.Trim().Equals("ninguno", StringComparison.OrdinalIgnoreCase) ? null : reason;
+        string.IsNullOrWhiteSpace(reason) || Normalize(reason) == "ninguno" ? null : reason;
 
     public static bool IsTerminal(TrackingState state) =>
         state is TrackingState.Confirmed or TrackingState.Rejected or TrackingState.Expired;
@@ -63,17 +63,24 @@ public static class StatusTexts
     };
 
     // Motivo de rechazo: los valores conocidos tienen un texto armado; cualquier otro se muestra tal cual.
-    public static (string ShortLabel, string Description) ForRejection(string reason) => reason.Trim().ToLowerInvariant() switch
+    public static (string ShortLabel, string Description) ForRejection(string reason) => Normalize(reason) switch
     {
-        "asientoocupado" or "seatoccupied" => ("Asiento ocupado",
+        "asiento ocupado" or "asientoocupado" or "seat occupied" or "seatoccupied" => ("Asiento ocupado",
             "El asiento ya estaba ocupado cuando procesamos tu solicitud. Podés elegir otro asiento."),
-        "pagofallido" or "paymentfailed" => ("Pago fallido",
+        "pago fallido" or "pagofallido" or "payment failed" or "paymentfailed" => ("Pago fallido",
             "El pago no fue aprobado. No se realizó la reserva y el asiento quedó liberado."),
-        "pagonodisponible" or "paymentunavailable" => ("Pago no disponible",
+        "pago no disponible" or "pagonodisponible" or "payment unavailable" or "paymentunavailable" => ("Pago no disponible",
             "El servicio de pagos no estaba disponible, por lo que no pudimos completar la reserva. El asiento quedó liberado."),
         _ => ("Motivo informado", reason),
     };
 
     public static bool IsPaymentRejection(string? reason) =>
-        reason?.Trim().ToLowerInvariant() is "pagofallido" or "pagonodisponible" or "paymentfailed" or "paymentunavailable";
+        Normalize(reason) is "pago fallido" or "pagofallido" or "payment failed" or "paymentfailed"
+            or "pago no disponible" or "pagonodisponible" or "payment unavailable" or "paymentunavailable";
+
+    private static string? Normalize(string? value) =>
+        value is null
+            ? null
+            : string.Join(' ', value.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .ToLowerInvariant();
 }
