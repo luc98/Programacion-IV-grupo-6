@@ -2,7 +2,7 @@
 
 **Asignatura**: Programación IV - UTN
 **Grupo**: 6
-**Parte a cargo**: Front de Availability Site (Razor MVC) + persistencia MongoDB que pidió el compañero del back
+**Parte a cargo**: Front de Availability Site (Razor MVC) + persistencia MongoDB 
 **Rama**: `Feature1-Availability-front`
 **Herramienta**: Claude Code (Claude)
 
