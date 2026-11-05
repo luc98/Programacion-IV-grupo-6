@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHostedService<BookingDbInitializer>();
 
 // Se configura PostgreSQL (Npgsql) como base de datos de Booking REST API.
 builder.Services.AddDbContext<BookingDbContext>(options =>
@@ -101,6 +102,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseMiddleware<BookingAPI.Presentation.Middlewares.TraceIdMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
