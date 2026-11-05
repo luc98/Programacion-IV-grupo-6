@@ -3,6 +3,9 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
+IMAGEN=notification-service:smoke
+CONTENEDOR=notification-service-smoke
+URL=http://127.0.0.1:5050/api/notifications
 fallos=0
 
 paso() { echo "[$(date +%H:%M:%S)] $*"; }
@@ -14,40 +17,39 @@ esperar() {
   shift 2
   for _ in $(seq 1 "$intentos"); do
     if "$@" >/dev/null 2>&1; then ok "$descripcion"; return 0; fi
-    sleep 2
+    sleep 1
   done
   mal "$descripcion"
   return 1
 }
 
-estado_saludable() {
-  [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q "$1")")" = "healthy" ]
-}
-
 log_contiene() {
-  docker compose logs --no-color notification-service 2>&1 | grep -q -- "$1"
+  docker logs "$CONTENEDOR" 2>&1 | grep -q -- "$1"
 }
 
 cuenta_en_log() {
-  docker compose logs --no-color notification-service 2>&1 | grep -c -- "$1" || true
+  docker logs "$CONTENEDOR" 2>&1 | grep -c -- "$1" || true
 }
 
-paso "Levantando los servicios"
-docker compose up -d --build || { mal "docker compose up"; exit 1; }
+codigo_http() {
+  curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'content-type: application/json' "$@"
+}
 
-paso "Infraestructura"
-esperar "La base de Keycloak está saludable" 30 estado_saludable keycloak-db
-esperar "La base de Booking está saludable" 30 estado_saludable booking-db
-esperar "Keycloak responde en http://127.0.0.1:8080" 60 curl -fs http://127.0.0.1:8080/realms/master
+limpiar() {
+  docker rm -f "$CONTENEDOR" >/dev/null 2>&1 || true
+}
+trap limpiar EXIT
+
+paso "Construyendo y levantando el notificador"
+limpiar
+docker build -q -t "$IMAGEN" TP-ProgramacionIV/NotificationService >/dev/null || { mal "docker build"; exit 1; }
+docker run -d --name "$CONTENEDOR" -p 127.0.0.1:5050:5050 "$IMAGEN" >/dev/null || { mal "docker run"; exit 1; }
 
 paso "Servicio de notificaciones"
-esperar "El notificador responde en http://127.0.0.1:5050" 30 curl -s -o /dev/null http://127.0.0.1:5050/api/notifications
+esperar "El notificador responde en http://127.0.0.1:5050" 30 curl -s -o /dev/null "$URL"
 
-URL=http://127.0.0.1:5050/api/notifications
 RESERVA=$(cat /proc/sys/kernel/random/uuid)
 CUERPO="{\"tipoEvento\":\"ReservaCreada\",\"reservaId\":\"$RESERVA\",\"usuarioId\":\"usuario-http\",\"estado\":\"Retenida\",\"fechaVencimientoUtc\":\"2026-11-05T18:05:00Z\",\"traceId\":\"trace-http-1\"}"
-
-codigo_http() { curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'content-type: application/json' "$@"; }
 
 [ "$(codigo_http -H 'x-event-type: ReservaCreada' -H 'x-trace-id: trace-http-1' -d "$CUERPO")" = "202" ] && ok "Un evento válido responde 202" || mal "Se esperaba 202 con un evento válido"
 [ "$(codigo_http -H 'x-event-type: ReservaCreada' -d "$CUERPO")" = "202" ] && ok "El mismo evento repetido responde 202" || mal "Se esperaba 202 con el evento repetido"
@@ -56,7 +58,7 @@ log_contiene "TraceId=trace-http-1" && ok "Los registros llevan el TraceId de la
 [ "$(codigo_http -d 'esto no es json')" = "400" ] && ok "Un cuerpo inválido responde 400" || mal "Se esperaba 400 con un cuerpo inválido"
 log_contiene "Resultado=Rejected" && ok "El rechazo queda en el log" || mal "No aparece Resultado=Rejected en el log"
 [ "$(codigo_http -H 'x-event-type: ReservaCreada' -d "{\"usuarioId\":\"u\",\"relleno\":\"$(head -c 70000 /dev/zero | tr '\0' x)\"}")" = "413" ] && ok "Un cuerpo de más de 64 KB responde 413" || mal "Se esperaba 413 con un cuerpo muy grande"
-[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5050/api/notifications)" = "405" ] && ok "GET responde 405" || mal "Se esperaba 405 con GET"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$URL")" = "405" ] && ok "GET responde 405" || mal "Se esperaba 405 con GET"
 
 echo
 if [ "$fallos" -eq 0 ]; then

@@ -11,8 +11,8 @@ Corresponde al punto 3.h del trabajo práctico (Grupo 6, dupla 4). El profesor i
 | Entrada HTTP `POST /api/notifications` con el contrato de Booking | Que Booking implemente la llamada HTTP: hoy no está en su rama |
 | Traducción del evento y plantillas por configuración | Envío real del aviso (mail o push): hoy sale por consola |
 | Descarte de duplicados | Almacén compartido de avisos ya enviados (hoy es memoria) |
-| Logs con Serilog, `TraceId` y auditoría de inicio y fin | Sumar los servicios de las otras duplas al Compose |
-| Pruebas (54), Dockerfile e imagen en el Compose | |
+| Logs con Serilog, `TraceId` y auditoría de inicio y fin | |
+| Pruebas (54), Dockerfile y prueba de humo con Docker | Sumar el servicio al Compose del grupo (`docker-keycloak-booking-payment.yaml`), a cargo de luc98 |
 
 ## Cómo funciona
 
@@ -72,7 +72,7 @@ Cuando el pago se confirma cambian `tipoEvento` a `ReservaConfirmada` y `estado`
 
 - No pide autenticación, porque el contrato acordado no la incluye y el servicio solo se publica en `127.0.0.1` o dentro de la red de Docker.
 - Al ser una llamada directa no hay broker que guarde el evento: si el notificador está caído, el aviso no llega salvo que el que llama reintente. Booking le da 2 segundos y no debería fallar una reserva por esto.
-- El puerto es el 5050: con `dotnet run` lo fija `launchSettings.json` y en Docker, `ASPNETCORE_URLS`. El Compose lo publica solo en `127.0.0.1:5050`, y desde otro contenedor se llama a `http://notification-service:5050`.
+- El puerto es el 5050: con `dotnet run` lo fija `launchSettings.json` y en Docker, `ASPNETCORE_URLS`. Conviene publicarlo solo en `127.0.0.1:5050`. Dentro del Compose del grupo, otro contenedor lo llama a `http://notification-service:5050`.
 
 ```bash
 curl -i -X POST http://127.0.0.1:5050/api/notifications \
@@ -157,7 +157,13 @@ docker build -t notification-service TP-ProgramacionIV/NotificationService
 docker run --rm -p 127.0.0.1:5050:5050 notification-service
 ```
 
-Con el Compose del repositorio, el servicio se llama `notification-service` y no necesita ninguna variable de entorno.
+Prueba de humo, que construye la imagen, levanta el servicio en `127.0.0.1:5050`, llama al endpoint y lo apaga:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+En el Compose del grupo el servicio se llama `notification-service`, escucha en el puerto 5050 y no necesita ninguna variable de entorno ni base de datos.
 
 ## Diseño
 
