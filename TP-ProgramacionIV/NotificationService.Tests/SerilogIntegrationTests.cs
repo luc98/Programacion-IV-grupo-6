@@ -39,7 +39,7 @@ public class SerilogIntegrationTests
     }
 
     private static IncomingEvent Message(Dictionary<string, string> properties) =>
-        new(null, "Creada", "solicitud-1", """{ "UsuarioId": "ana", "Nombre": "Ana" }""", properties);
+        new("Creada", "solicitud-1", """{ "UsuarioId": "ana", "Nombre": "Ana" }""", properties);
 
     [Fact]
     public async Task El_TraceId_del_mensaje_llega_como_propiedad_a_todos_los_registros()

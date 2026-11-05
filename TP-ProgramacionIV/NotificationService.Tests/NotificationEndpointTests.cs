@@ -166,7 +166,6 @@ public class NotificationEndpointTests : IClassFixture<NotificationEndpointTests
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.UseSetting("EventSource:Type", "None");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<INotificationSender>();

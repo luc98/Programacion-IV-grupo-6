@@ -26,9 +26,9 @@ public sealed class NotificationHandler(
             if (!renderer.TryRender(request, out var text))
             {
                 logger.LogWarning(
-                    "No hay plantilla para el tipo de aviso {Type}: el mensaje va a la cola de errores (clave {Key}).",
+                    "No hay plantilla para el tipo de aviso {Type}: se rechaza el mensaje (clave {Key}).",
                     request.Type, request.DeduplicationKey);
-                return ProcessingResult.DeadLetter($"No hay plantilla para el tipo de aviso '{request.Type}'.");
+                return ProcessingResult.Rejected($"No hay plantilla para el tipo de aviso '{request.Type}'.");
             }
 
             try

@@ -4,5 +4,5 @@ public enum ProcessingOutcome
 {
     Completed,
     Retry,
-    DeadLetter
+    Rejected
 }

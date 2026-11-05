@@ -59,11 +59,6 @@ services:
   notification-service:
     build: ./TP-ProgramacionIV/NotificationService
     image: notification-service:local
-    environment:
-      EventSource__Type: ${NOTIFICATION_SOURCE:-Fake}
-      ServiceBus__ConnectionString: ${SERVICEBUS_CONNECTION_STRING:-}
-      ServiceBus__TopicName: ${SERVICEBUS_TOPIC:-}
-      ServiceBus__SubscriptionName: ${SERVICEBUS_SUBSCRIPTION:-notification}
     ports:
       - "127.0.0.1:5050:5050"
     networks:

@@ -1,0 +1,27 @@
+name: reserva-asientos
+
+services:
+  booking:
+    build:
+      context: ./TP-ProgramacionIV
+      dockerfile: BookingAPI/Dockerfile
+    image: booking-api:local
+    environment:
+      ConnectionStrings__BookingDb: Host=booking-db;Port=5432;Database=BookingDb;Username=postgres;Password=${BOOKING_DB_PASSWORD:-postgrespassword};GSS Encryption Mode=Disable
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__TokenUrl: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/protocol/openid-connect/token
+      Authentication__ClientSecret: ${BOOKING_CLIENT_SECRET:-}
+      Authentication__RequireHttpsMetadata: "false"
+      GrpcSettings__PaymentServiceUrl: http://payment:8080
+      NotificationService__BaseUrl: http://notification-service:5050
+      AzureServiceBus__ConnectionString: ${SERVICEBUS_CONNECTION_STRING:-}
+      AzureServiceBus__SolicitudesTopic: ${SERVICEBUS_TOPIC:-grupo6-booking-topic}
+      AzureServiceBus__SolicitudesSubscription: ${SERVICEBUS_SUBSCRIPTION:-booking}
+    ports:
+      - "127.0.0.1:5156:8080"
+    depends_on:
+      booking-db:
+        condition: service_healthy
+    networks:
+      - reservas
+    restart: unless-stopped

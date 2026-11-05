@@ -2,19 +2,12 @@ using NotificationService.Delivery;
 using NotificationService.Handling;
 using NotificationService.Mapping;
 using NotificationService.Messaging;
-using NotificationService.Messaging.Fake;
-using NotificationService.Messaging.ServiceBus;
 using NotificationService.Templates;
 
 namespace NotificationService;
 
 public static class DependencyInjection
 {
-    public const string EventSourceTypeKey = "EventSource:Type";
-    public const string FakeSource = "Fake";
-    public const string ServiceBusSource = "ServiceBus";
-    public const string NoneSource = "None";
-
     public static IServiceCollection AddNotificationCore(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));
@@ -26,36 +19,6 @@ public static class DependencyInjection
         services.AddSingleton<IEventMapper, JsonEventMapper>();
         services.AddSingleton<NotificationHandler>();
         services.AddSingleton<IEventProcessor, EventProcessor>();
-
-        return services;
-    }
-
-    public static IServiceCollection AddEventSource(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<ServiceBusOptions>(configuration.GetSection(ServiceBusOptions.SectionName));
-
-        var type = configuration[EventSourceTypeKey];
-
-        if (string.IsNullOrWhiteSpace(type) || type.Equals(FakeSource, StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddSingleton<IEventSource>(provider => new FakeEventSource(
-                SampleEvents.BookingStyle(),
-                provider.GetRequiredService<ILogger<FakeEventSource>>(),
-                TimeSpan.FromSeconds(1)));
-        }
-        else if (type.Equals(ServiceBusSource, StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddSingleton<IEventSource, ServiceBusEventSource>();
-        }
-        else if (type.Equals(NoneSource, StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddSingleton<IEventSource, IdleEventSource>();
-        }
-        else
-        {
-            throw new InvalidOperationException(
-                $"{EventSourceTypeKey} no es válido: '{type}'. Los valores posibles son {FakeSource}, {ServiceBusSource} y {NoneSource}.");
-        }
 
         return services;
     }

@@ -17,10 +17,9 @@ public class JsonEventMapperTests
     private static IncomingEvent Event(
         string body,
         string? subject = "ReservaCreada",
-        string? messageId = null,
         string? correlationId = "solicitud-1",
         Dictionary<string, string>? properties = null) =>
-        new(messageId, subject, correlationId, body, properties ?? new Dictionary<string, string>());
+        new(subject, correlationId, body, properties ?? new Dictionary<string, string>());
 
     private static NotificationRequest Map(JsonEventMapper mapper, IncomingEvent incoming)
     {
@@ -114,17 +113,7 @@ public class JsonEventMapperTests
     }
 
     [Fact]
-    public void Si_falta_un_campo_de_negocio_usa_el_MessageId()
-    {
-        var mapper = MapperWith(deduplicationFields: "ReservaId");
-
-        var request = Map(mapper, Event("""{ "UsuarioId": "ana" }""", messageId: "m-9"));
-
-        Assert.Equal("id:m-9", request.DeduplicationKey);
-    }
-
-    [Fact]
-    public void Sin_campos_de_negocio_ni_MessageId_usa_la_huella_del_cuerpo()
+    public void Sin_campos_de_negocio_usa_la_huella_del_cuerpo()
     {
         var mapper = MapperWith();
         const string body = """{ "UsuarioId": "ana" }""";

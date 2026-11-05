@@ -33,7 +33,7 @@ public static class NotificationEndpoint
         return result.Outcome switch
         {
             ProcessingOutcome.Completed => Results.Accepted(),
-            ProcessingOutcome.DeadLetter => Results.BadRequest(new { error = result.Reason }),
+            ProcessingOutcome.Rejected => Results.BadRequest(new { error = result.Reason }),
             _ => Results.Json(new { error = result.Reason }, statusCode: StatusCodes.Status503ServiceUnavailable),
         };
     }

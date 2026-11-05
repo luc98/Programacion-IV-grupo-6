@@ -64,7 +64,7 @@ public class NotificationHandlerTests
     {
         var result = await HandlerWith().HandleAsync(Request(type: "Desconocido"), CancellationToken.None);
 
-        Assert.Equal(ProcessingOutcome.DeadLetter, result.Outcome);
+        Assert.Equal(ProcessingOutcome.Rejected, result.Outcome);
         Assert.Contains("Desconocido", result.Reason);
         Assert.Empty(_sender.Sent);
     }
@@ -85,8 +85,8 @@ public class NotificationHandlerTests
         var primera = await handler.HandleAsync(Request(type: "Desconocido"), CancellationToken.None);
         var segunda = await handler.HandleAsync(Request(type: "Desconocido"), CancellationToken.None);
 
-        Assert.Equal(ProcessingOutcome.DeadLetter, primera.Outcome);
-        Assert.Equal(ProcessingOutcome.DeadLetter, segunda.Outcome);
+        Assert.Equal(ProcessingOutcome.Rejected, primera.Outcome);
+        Assert.Equal(ProcessingOutcome.Rejected, segunda.Outcome);
     }
 
     [Fact]

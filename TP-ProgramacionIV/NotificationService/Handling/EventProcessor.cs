@@ -19,8 +19,8 @@ public sealed class EventProcessor(
         var traceId = incomingEvent.Properties.GetValueOrDefault(TraceIdProperty) ?? incomingEvent.CorrelationId;
 
         using var scope = logger.BeginScope(
-            "TraceId={TraceId} CorrelationId={CorrelationId} Subject={Subject} DeliveryCount={DeliveryCount}",
-            traceId, incomingEvent.CorrelationId, incomingEvent.Subject, incomingEvent.DeliveryCount);
+            "TraceId={TraceId} CorrelationId={CorrelationId} Subject={Subject}",
+            traceId, incomingEvent.CorrelationId, incomingEvent.Subject);
 
         var stopwatch = Stopwatch.StartNew();
         logger.AuditStart(Operation);
@@ -35,8 +35,8 @@ public sealed class EventProcessor(
     {
         if (!mapper.TryMap(incomingEvent, out var request, out var error))
         {
-            logger.LogWarning("Mensaje inválido, va a la cola de errores. Motivo: {Error}", error);
-            return ProcessingResult.DeadLetter(error);
+            logger.LogWarning("Mensaje inválido, se rechaza. Motivo: {Error}", error);
+            return ProcessingResult.Rejected(error);
         }
 
         return await handler.HandleAsync(request, cancellationToken);

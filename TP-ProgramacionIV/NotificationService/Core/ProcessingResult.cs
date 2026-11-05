@@ -6,5 +6,5 @@ public sealed record ProcessingResult(ProcessingOutcome Outcome, string? Reason 
 
     public static ProcessingResult Retry(string reason) => new(ProcessingOutcome.Retry, reason);
 
-    public static ProcessingResult DeadLetter(string reason) => new(ProcessingOutcome.DeadLetter, reason);
+    public static ProcessingResult Rejected(string reason) => new(ProcessingOutcome.Rejected, reason);
 }

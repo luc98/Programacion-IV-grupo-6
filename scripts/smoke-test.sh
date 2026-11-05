@@ -41,14 +41,8 @@ esperar "La base de Booking está saludable" 30 estado_saludable booking-db
 esperar "Keycloak responde en http://127.0.0.1:8080" 60 curl -fs http://127.0.0.1:8080/realms/master
 
 paso "Servicio de notificaciones"
-esperar "Procesó los mensajes de ejemplo" 30 log_contiene "se entregaron todos los mensajes"
+esperar "El notificador responde en http://127.0.0.1:5050" 30 curl -s -o /dev/null http://127.0.0.1:5050/api/notifications
 
-[ "$(cuenta_en_log 'AVISO para')" = "2" ] && ok "Envió 2 avisos al usuario" || mal "Se esperaban 2 avisos"
-[ "$(cuenta_en_log 'Aviso repetido')" = "1" ] && ok "Descartó 1 aviso repetido" || mal "Se esperaba 1 aviso repetido"
-[ "$(cuenta_en_log 'Resultado=DeadLetter')" = "1" ] && ok "Mandó 1 mensaje inválido a la cola de errores" || mal "Se esperaba 1 mensaje en la cola de errores"
-log_contiene "TraceId=a1f3c0de5b7e4c9f8a2d6e1b3c4d5e6f" && ok "Los registros llevan el TraceId" || mal "No aparece el TraceId en el log"
-
-paso "Entrada HTTP del notificador"
 URL=http://127.0.0.1:5050/api/notifications
 RESERVA=$(cat /proc/sys/kernel/random/uuid)
 CUERPO="{\"tipoEvento\":\"ReservaCreada\",\"reservaId\":\"$RESERVA\",\"usuarioId\":\"usuario-http\",\"estado\":\"Retenida\",\"fechaVencimientoUtc\":\"2026-11-05T18:05:00Z\",\"traceId\":\"trace-http-1\"}"
@@ -60,6 +54,7 @@ codigo_http() { curl -s -o /dev/null -w '%{http_code}' -X POST "$URL" -H 'conten
 [ "$(cuenta_en_log "AVISO para usuario-http")" = "1" ] && ok "Avisó una sola vez al usuario" || mal "Se esperaba un solo aviso para usuario-http"
 log_contiene "TraceId=trace-http-1" && ok "Los registros llevan el TraceId de la cabecera" || mal "No aparece TraceId=trace-http-1 en el log"
 [ "$(codigo_http -d 'esto no es json')" = "400" ] && ok "Un cuerpo inválido responde 400" || mal "Se esperaba 400 con un cuerpo inválido"
+log_contiene "Resultado=Rejected" && ok "El rechazo queda en el log" || mal "No aparece Resultado=Rejected en el log"
 [ "$(codigo_http -H 'x-event-type: ReservaCreada' -d "{\"usuarioId\":\"u\",\"relleno\":\"$(head -c 70000 /dev/zero | tr '\0' x)\"}")" = "413" ] && ok "Un cuerpo de más de 64 KB responde 413" || mal "Se esperaba 413 con un cuerpo muy grande"
 [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5050/api/notifications)" = "405" ] && ok "GET responde 405" || mal "Se esperaba 405 con GET"
 

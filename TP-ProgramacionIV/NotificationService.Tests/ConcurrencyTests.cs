@@ -5,7 +5,6 @@ using NotificationService.Delivery;
 using NotificationService.Handling;
 using NotificationService.Mapping;
 using NotificationService.Messaging;
-using NotificationService.Messaging.Fake;
 using NotificationService.Templates;
 
 namespace NotificationService.Tests;
@@ -33,7 +32,7 @@ public class ConcurrencyTests
     }
 
     private static IncomingEvent Message(int reserva) =>
-        new(null, "Creada", $"solicitud-{reserva}",
+        new("Creada", $"solicitud-{reserva}",
             $$"""{ "UsuarioId": "usuario-{{reserva}}", "ReservaId": "r-{{reserva}}", "Nombre": "Ana" }""",
             new Dictionary<string, string>());
 
@@ -42,13 +41,16 @@ public class ConcurrencyTests
     {
         var sender = new RecordingSender();
         var messages = Enumerable.Range(0, 2000).Select(Message).ToList();
-        var source = new FakeEventSource(messages, NullLogger<FakeEventSource>.Instance);
+        var processor = ProcessorWith(sender);
 
-        await source.RunAsync(ProcessorWith(sender), CancellationToken.None);
+        foreach (var message in messages)
+        {
+            var result = await processor.ProcessAsync(message, CancellationToken.None);
+            Assert.Equal(ProcessingOutcome.Completed, result.Outcome);
+        }
 
         Assert.Equal(2000, sender.Sent.Count);
         Assert.Equal(2000, sender.Sent.Select(s => s.RecipientId).Distinct().Count());
-        Assert.Empty(source.DeadLetters);
     }
 
     [Fact]

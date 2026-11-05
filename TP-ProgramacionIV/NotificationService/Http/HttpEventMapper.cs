@@ -22,7 +22,7 @@ public static class HttpEventMapper
             properties[EventProcessor.TraceIdProperty] = traceId;
         }
 
-        return new IncomingEvent(null, eventType, traceId, body, properties);
+        return new IncomingEvent(eventType, traceId, body, properties);
     }
 
     private static string? FirstNotBlank(params string?[] values) =>

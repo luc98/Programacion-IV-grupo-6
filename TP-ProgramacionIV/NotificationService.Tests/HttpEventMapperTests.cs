@@ -58,13 +58,4 @@ public class HttpEventMapperTests
         Assert.Empty(incoming.Properties);
         Assert.Equal(body, incoming.Body);
     }
-
-    [Fact]
-    public void El_mensaje_por_HTTP_no_trae_MessageId_y_cuenta_como_primera_entrega()
-    {
-        var incoming = HttpEventMapper.ToIncomingEvent("ReservaCreada", null, Body);
-
-        Assert.Null(incoming.MessageId);
-        Assert.Equal(1, incoming.DeliveryCount);
-    }
 }

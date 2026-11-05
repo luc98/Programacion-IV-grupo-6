@@ -105,11 +105,6 @@ public sealed class JsonEventMapper(IOptions<MappingOptions> options) : IEventMa
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(incomingEvent.MessageId))
-        {
-            return $"id:{incomingEvent.MessageId}";
-        }
-
         return $"body:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(incomingEvent.Body)))}";
     }
 }
