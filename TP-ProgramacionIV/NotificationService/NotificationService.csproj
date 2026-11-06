@@ -4,7 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-NotificationService-7b0ac7a3-2566-4def-b6de-e610a56bde20</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
