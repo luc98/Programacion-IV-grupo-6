@@ -57,7 +57,7 @@ El contrato es [`TP-ProgramacionIV/Protos/payment/v1/payment.proto`](../Protos/p
 | Misma reserva otra vez, mismos datos | OK, el mismo `transaccion_id` que la primera vez | Según el resultado guardado |
 | Misma reserva con otro monto u otro usuario | `FailedPrecondition` | PagoNoDisponible |
 | Pedido mal formado | `InvalidArgument` | PagoNoDisponible |
-| Sin token o token inválido (firma, emisor o vencimiento). También sin audiencia `payment-api`, si `ValidateAudience` está en `true`; en Development y en el compose está en `false` | `Unauthenticated` | PagoNoDisponible |
+| Sin token o token inválido (firma, emisor o vencimiento). También sin audiencia `payment-api`, si `ValidateAudience` está en `true` | `Unauthenticated` | PagoNoDisponible |
 | Token de otro cliente del realm | `PermissionDenied` | PagoNoDisponible |
 | Base caída | `Unavailable`, que Booking reintenta | PagoNoDisponible si no se recupera |
 | Error inesperado | `Internal`, sin detalles | PagoNoDisponible |
@@ -69,9 +69,9 @@ En `appsettings.json`, o por variables de entorno con `__`, por ejemplo `BancoSi
 | Clave | Por defecto | Para qué |
 |---|---|---|
 | `ConnectionStrings:PaymentDb` | Vacía. En Development, `localhost:5433` | Base propia. Conviene sumar `GSS Encryption Mode=Disable`: sin eso, Npgsql intenta Kerberos y deja un error en el log |
-| `Authentication:Authority` | `http://localhost:8080/realms/booking-realm` | De dónde se bajan las claves del realm. En Docker, `http://keycloak:8080/...` |
+| `Authentication:Authority` | `http://localhost:8080/realms/reservas-realm` | De dónde se bajan las claves del realm. En Docker, `http://keycloak:8080/...` |
 | `Authentication:ValidIssuer` | Igual que `Authority` | El emisor que figura en el token. Con `KC_HOSTNAME=http://localhost:8080`, es `localhost` aunque Payment consulte por `keycloak` |
-| `Authentication:ValidateAudience` | `true`. En Development y en el compose, `false` | Exigir `aud = payment-api`. Hoy los tokens del grupo salen sin `aud` |
+| `Authentication:ValidateAudience` | `true`. En Development, `false` | Exigir `aud = payment-api`. El realm la agrega a los tokens de `booking-api` |
 | `Authentication:AllowedClients` | `["booking-api"]` | Qué clientes de Keycloak pueden cobrar (claim `azp`) |
 | `BancoSimulado:LimitePorCobroCentavos` | `5000000` ($50.000) | Por encima, fondos insuficientes. `0` = sin límite |
 | `BancoSimulado:UsuariosSinFondos` | `["usuario-sin-fondos"]` | Usuarios a los que siempre se les rechaza |
@@ -80,19 +80,13 @@ En `appsettings.json`, o por variables de entorno con `__`, por ejemplo `BancoSi
 
 ## Cómo correrlo
 
-Con Docker, desde la raíz del repo:
+Con Docker, desde la raíz del repo y con un `.env` copiado de `.env.example`:
 
 ```bash
-docker compose -f docker-compose.payment.yml up -d --build
+docker compose -f docker-keycloak-booking-payment.yaml up -d --build
 ```
 
-Así, solo, Payment arranca pero no tiene un Keycloak con el que validar los tokens: todas las llamadas vuelven `Unauthenticated`. Para probar un cobro hay que levantarlo sumado al compose del grupo, que trae Keycloak:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.payment.yml up -d --build
-```
-
-Payment escucha en `http://payment:8080` dentro de la red `reservas` y en `127.0.0.1:5260` desde el equipo. La base no publica puertos.
+Payment escucha en `http://payment:8080` dentro de la red `booking_network` y en `127.0.0.1:5260` desde el equipo.
 
 Sin Docker, con un Postgres de desarrollo en el puerto 5433:
 

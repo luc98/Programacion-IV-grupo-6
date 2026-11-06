@@ -4,7 +4,8 @@ using AvailabilitySite.Application.Common;
 namespace AvailabilitySite.Application.Availability;
 
 public sealed class GetEventAvailabilityService(
-    IAvailabilityQueryRepository availabilityQueryRepository)
+    IAvailabilityQueryRepository availabilityQueryRepository,
+    IOccupiedSeatsClient occupiedSeatsClient)
     : IGetEventAvailabilityUseCase
 {
     public async Task<Result<EventAvailabilityDto>> ExecuteAsync(
@@ -23,8 +24,15 @@ public sealed class GetEventAvailabilityService(
         var seats = await availabilityQueryRepository
             .GetSeatsAsync(eventId, cancellationToken);
 
+        // Mongo guarda el catálogo y Booking las reservas. Si Booking no responde se muestra el catálogo:
+        // la vista es eventualmente consistente (3.g) y Booking rechaza igual un asiento ocupado.
+        var occupied = await occupiedSeatsClient.GetOccupiedSeatIdsAsync(eventId, cancellationToken);
+
         var result = seats
-            .Select(seat => new SeatAvailabilityDto(seat.Id, seat.Label, seat.IsAvailable))
+            .Select(seat => new SeatAvailabilityDto(
+                seat.Id,
+                seat.Label,
+                seat.IsAvailable && occupied?.Contains(seat.Id) != true))
             .ToList();
 
         return Result<EventAvailabilityDto>.Success(

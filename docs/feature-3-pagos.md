@@ -186,18 +186,18 @@ La llamada a Payment es síncrona, pero hay dos bases. Si el último intento se 
 | Token | `KeycloakTokenProvider` propio, con caché | Pedir un token por cobro |
 | Idempotencia | `reserva_id` con índice UNIQUE | Sin clave: un reintento después de un timeout cobraría dos veces |
 | Trazabilidad | Convención de dupla 4: `x-trace-id` = `SolicitudId` | Un identificador nuevo por llamada |
-| Audiencia | Validada según un flag | Exigirla siempre, que hoy rechazaría todos los cobros |
+| Audiencia | Validada: el realm agrega `payment-api` a los tokens de `booking-api` | Apagarla, que dejaría pasar un token emitido para otro servicio |
 
 ## Demo
 
 El proyecto [`TP-ProgramacionIV/DemoResiliencia`](../TP-ProgramacionIV/DemoResiliencia/Program.cs) usa el cliente de Booking, registrado igual que en Booking, sin Service Bus ni la base de Booking. Necesita Keycloak y Payment levantados, desde la raíz del repo; el resto del sistema no hace falta:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.payment.yml up -d --build
+docker compose -f docker-keycloak-booking-payment.yaml up -d --build
 ```
 
 ```bash
-export Authentication__ClientSecret=<secreto de booking-api>
+export Authentication__ClientSecret='**********'
 cd TP-ProgramacionIV/DemoResiliencia
 dotnet run
 ```
@@ -205,11 +205,11 @@ dotnet run
 En modo interactivo, las opciones cobran una reserva de $1.500, una de $60.000 o cinco seguidas. Payment se apaga y se prende desde otra terminal, parado en la raíz del repo:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.payment.yml stop payment
+docker compose -f docker-keycloak-booking-payment.yaml stop payment
 ```
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.payment.yml start payment
+docker compose -f docker-keycloak-booking-payment.yaml start payment
 ```
 
 Con `dotnet run -- --guion` recorre solo los escenarios de abajo.
@@ -230,17 +230,6 @@ Salida de la demo en [`docs/evidencia/feature-3-escenarios.txt`](evidencia/featu
 
 La consulta a la base de Payment, al final de la evidencia, muestra que solo quedaron pagos de los cobros que Payment llegó a procesar: los aprobados y el rechazado por fondos. Los intentos cortados del escenario 6 y los cobros con Payment caído no dejaron ninguno.
 
-## Para integrarlo con el resto del grupo
+## Integración con el resto del grupo
 
-Cuando Booking tenga su Dockerfile y su servicio en el compose, necesita estas variables:
-
-| Variable | Valor |
-|---|---|
-| `GrpcSettings__PaymentServiceUrl` | `http://payment:8080` |
-| `Authentication__TokenUrl` | `http://keycloak:8080/realms/booking-realm/protocol/openid-connect/token` |
-| `Authentication__ClientSecret` | El secreto de `booking-api`, por variable de entorno y nunca en el repo |
-| `Authentication__Authority` | `http://keycloak:8080/realms/booking-realm`, para que el `[Authorize]` de Booking baje las claves del realm por la red interna |
-| `AzureServiceBus__ConnectionString` | La cadena de Service Bus, por variable de entorno y nunca en el repo |
-| `ConnectionStrings__BookingDb` | Sumarle `GSS Encryption Mode=Disable`, por el mismo motivo que en Payment |
-
-Del lado de Keycloak falta agregar al cliente `booking-api` un mapper de audiencia con `payment-api`, y exportar `booking-realm` al repo. El export que hay hoy es de `reservas-realm` y trae los secretos enmascarados: al importarlo, hay que regenerar el secreto de `booking-api`.
+Payment y Booking ya están en `docker-keycloak-booking-payment.yaml`. El compose le pasa a Booking la dirección de Payment y el secreto de `booking-api`, y el realm `reservas-realm` agrega `payment-api` como audiencia de sus tokens.

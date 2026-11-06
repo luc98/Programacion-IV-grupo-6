@@ -34,6 +34,22 @@ namespace BookingAPI.DAL.Repositories
                  (r.Estado == EstadoReserva.Retenida && r.FechaVencimientoUtc > ahoraUtc)));
         }
 
+        public async Task<List<Guid>> ObtenerAsientosOcupadosPorEventoAsync(Guid eventoId)
+        {
+            DateTime ahoraUtc = DateTime.UtcNow;
+
+            // Misma regla que ExisteReservaActivaParaAsientoAsync: una retenida ya vencida no ocupa el asiento,
+            // aunque ExpirationWorker todavía no la haya pasado a Vencida.
+            return await _context.Reservas
+                .AsNoTracking()
+                .Where(r => r.EventoId == eventoId &&
+                    (r.Estado == EstadoReserva.Confirmada ||
+                     (r.Estado == EstadoReserva.Retenida && r.FechaVencimientoUtc > ahoraUtc)))
+                .Select(r => r.AsientoId)
+                .Distinct()
+                .ToListAsync();
+        }
+
         public async Task GuardarReservaConcurrenteAsync(Reserva reserva, Asiento asiento)
         {
             // Control de concurrencia

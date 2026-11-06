@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using BookingAPI.BLL.DTOs;
 using BookingAPI.BLL.Interfaces;
@@ -11,16 +13,19 @@ namespace BookingAPI.BLL.Gateways
     public class HttpNotificationPublisher : IEventPublisher
     {
         private readonly HttpClient _httpClient;
+        private readonly ITokenProvider _tokenProvider;
         private readonly ILogger<HttpNotificationPublisher> _logger;
         private readonly string _endpoint;
         private readonly int _timeoutSegundos;
 
         public HttpNotificationPublisher(
             HttpClient httpClient,
+            ITokenProvider tokenProvider,
             IConfiguration configuration,
             ILogger<HttpNotificationPublisher> logger)
         {
             _httpClient = httpClient;
+            _tokenProvider = tokenProvider;
             _logger = logger;
             // Carga la ruta y establece un timeout estricto (2 segundos) para no retener recursos
             _endpoint = configuration["NotificationService:Endpoint"] ?? "/api/notifications";
@@ -68,7 +73,11 @@ namespace BookingAPI.BLL.Gateways
             {
                 // CancellationTokenSource asegura que si la red se cuelga, corta la operacion a los 2 segundos
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_timeoutSegundos));
+                // Punto 3.e: Booking se autentica ante Notifications con el mismo token de Keycloak que usa con Payment
+                string token = await _tokenProvider.ObtenerTokenAsync(cts.Token);
+
                 using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 request.Headers.Add("x-trace-id", traceIdEfectivo);
                 request.Headers.Add("x-event-type", tipoEvento);
                 request.Content = JsonContent.Create(eventoDto);
@@ -77,6 +86,12 @@ namespace BookingAPI.BLL.Gateways
                 // Si Notification Service esta caido o responde lento, se degrada elegantemente con LogWarning
                 // Y la transaccion principal de Booking no se interrumpe ni se cancela
                 var response = await _httpClient.SendAsync(request, cts.Token);
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    // El próximo aviso pide un token nuevo
+                    _tokenProvider.Invalidar();
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
                     // Notifica el error HTTP sin interrumpir la reserva

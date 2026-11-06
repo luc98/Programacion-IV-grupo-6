@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace NotificationService.Security;
 
 // [JUSTIFICACIÓN - Seguridad opcional (punto 3.e)] Valida el token Bearer de Keycloak (firma, emisor y vencimiento) y que lo pida un cliente permitido.
-// Está apagada por defecto porque Booking todavía no manda token: si estuviera encendida, todos los avisos darían 401.
+// Está apagada por defecto para correr el servicio y sus pruebas sin Keycloak. El compose la activa.
 public static class AuthenticationExtensions
 {
     public const string EnabledKey = "Authentication:Enabled";

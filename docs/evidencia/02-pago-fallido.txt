@@ -1,0 +1,26 @@
+# Pago fallido: el Recital supera el límite y el asiento vuelve a quedar libre
+# TraceId: 0375a38c-ffcd-4402-9a08-004aec5b3e0d
+
+=== booking
+03:33:58 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Inicio ProcesarMensaje TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d SolicitudId=0375a38c-ffcd-4402-9a08-004aec5b3e0d SequenceNu
+03:33:58 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Inicio ProcesarSolicitudReserva TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d SolicitudId=0375a38c-ffcd-4402-9a08-004aec5b3e0d A
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] [KEYCLOAK] Token de booking-api renovado. Vence en 300 s
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] [NOTIFICATION SERVICE - HTTP] Notificación 'ReservaCreada' enviada exitosamente. TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d 
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Inicio CobrarReserva TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d ReservaId=3e4d9258-2e83-43ce-95a7-306750cc686b Monto=22000.00
+03:33:59 WRN [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] [gRPC] TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d Payment rechazó el cobro: El monto supera el límite por cobro de 20000.00
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Fin CobrarReserva TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d Resultado=PagoFallido DuracionMs=144
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Fin ProcesarSolicitudReserva TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d SolicitudId=0375a38c-ffcd-4402-9a08-004aec5b3e0d Rese
+03:33:59 INF [BookingAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Fin ProcesarMensaje TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d SolicitudId=0375a38c-ffcd-4402-9a08-004aec5b3e0d Resultado=Com
+
+=== payment
+03:33:59 INF [PaymentAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Inicio /payment.v1.PaymentService/ProcesarPago
+03:33:59 INF [PaymentAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Pago 74853a3c-ccd7-4e56-b140-2307a7e6e1a1 registrado para la reserva 3e4d9258-2e83-43ce-95a7-306750cc686b: RechazadoFondosInsuf
+03:33:59 INF [PaymentAPI] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Fin /payment.v1.PaymentService/ProcesarPago Resultado=OK DuracionMs=52
+
+=== notification-service
+03:33:59 INF [NotificationService] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Inicio ProcesarMensaje
+03:33:59 INF [NotificationService] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] AVISO para usuario-prueba: Tu reserva 3e4d9258-2e83-43ce-95a7-306750cc686b quedó retenida hasta 2026-11-06T03:38:58.8
+03:33:59 INF [NotificationService] [TraceId=0375a38c-ffcd-4402-9a08-004aec5b3e0d] Fin ProcesarMensaje Resultado=Completed DuracionMs=0
+
+=== estado final en Booking
+Rechazada / PagoFallido

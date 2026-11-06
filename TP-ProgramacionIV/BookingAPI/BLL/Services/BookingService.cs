@@ -66,8 +66,8 @@ namespace BookingAPI.BLL.Services
                 }
 
                 Asiento? asiento = await _reservaRepository.ObtenerAsientoPorIdAsync(solicitud.AsientoId);
-                // Si Availability fallo y el asiento no existe, se corta la ejecucion
-                if (asiento is null)
+                // Si Availability fallo y el asiento no existe o es de otro evento, se corta la ejecucion
+                if (asiento is null || asiento.EventoId != solicitud.EventoId)
                 {
                     await RegistrarRechazoAsync(solicitud, MotivoRechazo.AsientoOcupado);
                     _logger.LogWarning(
@@ -164,6 +164,10 @@ namespace BookingAPI.BLL.Services
         }
 
         // Implementa la consulta de seguimiento del estado de una solicitud (GET expuesto para Availability Site)
+        // Booking es el dueño de las reservas: Availability le pregunta qué asientos están ocupados
+        public Task<List<Guid>> ObtenerAsientosOcupadosAsync(Guid eventoId) =>
+            _reservaRepository.ObtenerAsientosOcupadosPorEventoAsync(eventoId);
+
         public async Task<ReservaResultadoDto?> ObtenerEstadoPorSolicitudIdAsync(Guid solicitudId)
         {
             Reserva? reserva = await _reservaRepository.ObtenerReservaPorSolicitudIdAsync(solicitudId);

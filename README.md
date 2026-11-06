@@ -20,17 +20,44 @@ MONGODB_CONNECTION_STRING=mongodb+srv://jonathanmarinobellin_db_user:W3UdLkysEKy
 # Keycloak y Payment
 KEYCLOAK_REALM=reservas-realm
 PAYMENT_DB_PASSWORD=payment-dev
-PAYMENT_VALIDATE_AUDIENCE=false
+PAYMENT_VALIDATE_AUDIENCE=true
 PAYMENT_RETARDO_MS=0
+
+# Google: inicio de sesión con cuenta de Google en Keycloak
+GOOGLE_CLIENT_SECRET=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
 ```
 
 2. Ejecutar desde la raíz:
 
 ```bash
-docker compose -f docker-keycloak-booking-payment.yaml up -d --build
+docker compose -f docker-keycloak-booking-payment.yaml up -d --build --scale booking=2
 ```
 
 3. Abrir http://localhost:5215.
+
+## Cómo probarlo
+
+1. Elegir un evento y un asiento disponible.
+2. Tocar **Continuar con Google**. La cuenta debe estar habilitada en la app de Google si esta sigue en modo de prueba.
+3. Enviar la solicitud y seguir su estado en **Mis solicitudes**.
+
+| Prueba | Resultado esperado |
+|---|---|
+| Reservar en **Conferencia de prueba**, $15.000 | Reserva confirmada y asiento ocupado |
+| Reservar en **Recital de prueba**, $22.000 | Rechazada por pago fallido: supera el límite de $20.000 |
+| Apagar Payment y reservar | Rechazada por pago no disponible, sin que se caiga Booking |
+
+Para apagar y volver a prender Payment:
+
+```bash
+docker compose -f docker-keycloak-booking-payment.yaml stop payment
+```
+
+```bash
+docker compose -f docker-keycloak-booking-payment.yaml start payment
+```
+
+El detalle y las pruebas realizadas están en [`docs/happy-path.md`](docs/happy-path.md).
 
 ## Correrlo sin Docker
 
@@ -84,9 +111,14 @@ Con el Keycloak de este repositorio, `ClientSecret` debe ser `**********` en Ava
 | `PAYMENT_DB_PASSWORD` | `.env` |
 | `PAYMENT_VALIDATE_AUDIENCE` | `.env` |
 | `PAYMENT_RETARDO_MS` | `.env` |
+| `GOOGLE_CLIENT_SECRET` | `.env` |
+| `PAYMENT_LIMITE_CENTAVOS` | `.env`, opcional. Por defecto, 2000000 |
 
 ## Documentación
 
+- [Arquitectura y tabla del punto 1](docs/arquitectura.md)
+- [Happy path y flujos de fallo](docs/happy-path.md)
+- [Plantilla de logs](docs/plantilla-de-logs.md)
 - [Availability](docs/feature-1-Availability.md)
 - [Booking](docs/feature-2-booking.md)
 - [Payment](docs/feature-3-pagos.md)
