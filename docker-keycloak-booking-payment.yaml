@@ -1,3 +1,6 @@
+# Sistema completo. Booking no publica puerto ni fija su contenedor para poder usar dos réplicas:
+#   docker compose -f docker-keycloak-booking-payment.yaml up -d --build --scale booking=2
+
 services:
   # --- INFRAESTRUCTURA DE SEGURIDAD Authorization Server ---
   keycloak-db:
@@ -15,7 +18,7 @@ services:
       - booking_network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.8.1
     container_name: keycloak_server
     command: start-dev --import-realm
     environment:
@@ -23,6 +26,13 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: admin6
+      # El navegador llega por localhost y los contenedores por keycloak:8080. Con esto el
+      # emisor de los tokens es siempre localhost:8080 y cada uno usa la dirección que alcanza.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Keycloak reemplaza esta variable al importar el realm. Sin el secreto real, Google no funciona.
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-**********}
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
@@ -33,6 +43,13 @@ services:
       - keycloak-db
     networks:
       - booking_network
+    healthcheck:
+      # La imagen no trae curl: se consulta el puerto de administración con bash.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   # --- BASES DE DATOS DE MICROSERVICIOS ---
   booking-db:
@@ -49,6 +66,13 @@ services:
       - postgres_booking_data:/var/lib/postgresql/data
     networks:
       - booking_network
+    healthcheck:
+      # -h fuerza TCP: en el primer arranque, Postgres levanta un servidor temporal
+      # que solo escucha el socket local, y sin -h daría sano antes de tiempo.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d BookingDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   payment-db:
     image: postgres:16-alpine
@@ -73,6 +97,8 @@ services:
   mongo-db:
     image: mongo:7.0
     container_name: mongodb_availability
+    # Availability usa transacciones en el outbox, y Mongo solo las permite en un replica set.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -80,6 +106,12 @@ services:
       - mongo_data:/data/db
     networks:
       - booking_network
+    healthcheck:
+      # Inicia el replica set la primera vez y da sano cuando este nodo ya es primario.
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo-db:27017' }] }) }; quit(db.hello().isWritablePrimary ? 0 : 1)\""]
+      interval: 5s
+      timeout: 10s
+      retries: 20
 
   # --- MICROSERVICIOS ---
   booking:
@@ -87,7 +119,6 @@ services:
       context: ./TP-ProgramacionIV
       dockerfile: BookingAPI/Dockerfile
     image: booking-api:local
-    container_name: booking_api
     environment:
       ConnectionStrings__BookingDb: Host=booking-db;Port=5432;Database=BookingDb;Username=postgres;Password=postgrespassword
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
@@ -99,12 +130,12 @@ services:
       NotificationService__BaseUrl: http://notification-service:5050
       AzureServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
       AzureServiceBus__SolicitudesTopic: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
-      AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking-sub}
-    ports:
-      - "5156:8080"
+      AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking}
     depends_on:
-      - booking-db
-      - keycloak
+      booking-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - booking_network
     restart: unless-stopped
@@ -118,11 +149,12 @@ services:
     environment:
       ConnectionStrings__PaymentDb: Host=payment-db;Port=5432;Database=PaymentDb;Username=payment;Password=${PAYMENT_DB_PASSWORD:-payment-dev};GSS Encryption Mode=Disable
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-#     Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-      Authentication__ValidIssuer: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__RequireHttpsMetadata: "false"
-      Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-false}
+      Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-true}
       BancoSimulado__RetardoMs: ${PAYMENT_RETARDO_MS:-0}
+      # Con 20.000 se confirma la Conferencia (15.000) y el Recital (22.000) da pago fallido.
+      BancoSimulado__LimitePorCobroCentavos: ${PAYMENT_LIMITE_CENTAVOS:-2000000}
     ports:
       - "127.0.0.1:5260:8080"
     depends_on:
@@ -146,16 +178,19 @@ services:
       KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       KeycloakService__ClientSecret: ${AVAILABILITY_CLIENT_SECRET:-**********}
       Booking__BaseUrl: http://booking:8080/
-      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017}
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017/?replicaSet=rs0}
       MongoDB__DatabaseName: AvailabilityDb
       ServiceBus__TopicName: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
       ServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
     ports:
       - "5215:8080"
     depends_on:
-      - mongo-db
-      - keycloak
-      - booking
+      mongo-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      booking:
+        condition: service_started
     networks:
       - booking_network
     restart: unless-stopped
@@ -165,8 +200,18 @@ services:
     build: ./TP-ProgramacionIV/NotificationService
     image: notification-service:local
     container_name: notification_service
+    environment:
+      # Punto 3.e: solo acepta avisos con un token de Keycloak emitido para Booking.
+      Authentication__Enabled: "true"
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidateAudience: "true"
+      Authentication__RequireHttpsMetadata: "false"
     ports:
       - "127.0.0.1:5050:5050"
+    depends_on:
+      keycloak:
+        condition: service_healthy
     networks:
       - booking_network
     restart: unless-stopped

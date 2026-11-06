@@ -1,0 +1,5 @@
+# Vencimiento: una reserva Retenida ocupa el asiento y al vencer lo libera
+recien retenida: Retenida / Ninguno
+pagina: Asiento B-01, disponible;Asiento B-02, ocupado (no se puede elegir);
+estado final: Vencida / Ninguno
+pagina: Asiento B-01, disponible;Asiento B-02, disponible;

@@ -1,0 +1,29 @@
+# Reserva confirmada con avisos autenticados
+# TraceId: c2cd03bc-c5f2-4e93-9365-471b0b51fb79
+
+=== booking
+03:33:50 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio ProcesarMensaje TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 SolicitudId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 SequenceNu
+03:33:50 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio ProcesarSolicitudReserva TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 SolicitudId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 A
+03:33:51 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] [KEYCLOAK] Token de booking-api renovado. Vence en 300 s
+03:33:51 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] [NOTIFICATION SERVICE - HTTP] Notificación 'ReservaCreada' enviada exitosamente. TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 
+03:33:51 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio CobrarReserva TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 ReservaId=9473540c-bb0b-4b3a-a012-4978f8c108ff Monto=15000.00
+03:33:52 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin CobrarReserva TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 Resultado=Aprobado DuracionMs=658
+03:33:52 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] [NOTIFICATION SERVICE - HTTP] Notificación 'ReservaConfirmada' enviada exitosamente. TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51f
+03:33:52 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin ProcesarSolicitudReserva TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 SolicitudId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 Rese
+03:33:52 INF [BookingAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin ProcesarMensaje TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 SolicitudId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79 Resultado=Com
+
+=== payment
+03:33:51 INF [PaymentAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio /payment.v1.PaymentService/ProcesarPago
+03:33:52 INF [PaymentAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Pago ab6f8209-07cf-498a-8215-94a069957576 registrado para la reserva 9473540c-bb0b-4b3a-a012-4978f8c108ff: Aprobado
+03:33:52 INF [PaymentAPI] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin /payment.v1.PaymentService/ProcesarPago Resultado=OK DuracionMs=398
+
+=== notification-service
+03:33:51 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio ProcesarMensaje
+03:33:51 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] AVISO para usuario-prueba: Tu reserva 9473540c-bb0b-4b3a-a012-4978f8c108ff quedó retenida hasta 2026-11-06T03:38:50.9
+03:33:51 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin ProcesarMensaje Resultado=Completed DuracionMs=6
+03:33:52 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Inicio ProcesarMensaje
+03:33:52 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] AVISO para usuario-prueba: Tu reserva 9473540c-bb0b-4b3a-a012-4978f8c108ff fue confirmada. ¡Gracias por tu compra!
+03:33:52 INF [NotificationService] [TraceId=c2cd03bc-c5f2-4e93-9365-471b0b51fb79] Fin ProcesarMensaje Resultado=Completed DuracionMs=0
+
+=== estado final en Booking
+Confirmada / Ninguno

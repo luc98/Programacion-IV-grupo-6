@@ -84,8 +84,8 @@ async Task InteractivoAsync()
           3  Cobrar 5 reservas seguidas
           q  Salir
         En otra terminal, desde la raíz del repo:
-          docker compose -f docker-compose.yml -f docker-compose.payment.yml stop payment
-          docker compose -f docker-compose.yml -f docker-compose.payment.yml start payment
+          docker compose -f docker-keycloak-booking-payment.yaml stop payment
+          docker compose -f docker-keycloak-booking-payment.yaml start payment
         """);
     while (true)
     {

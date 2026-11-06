@@ -419,7 +419,7 @@ await EjecutarPruebaAsync(
             })
             .Build();
 
-        var publisher = new HttpNotificationPublisher(httpClient, inMemoryConfig, NullLogger<HttpNotificationPublisher>.Instance);
+        var publisher = new HttpNotificationPublisher(httpClient, new FakeTokenProvider(), inMemoryConfig, NullLogger<HttpNotificationPublisher>.Instance);
         var reserva = new Reserva
         {
             ReservaId = Guid.NewGuid(),
@@ -477,6 +477,15 @@ internal sealed class FakePaymentGateway : IPaymentGateway
             ServicioCaido = _servicioCaido,
             ErrorMensaje = _exitoso ? null : (_servicioCaido ? "Servicio no disponible" : "Fondos insuficientes")
         });
+    }
+}
+
+internal sealed class FakeTokenProvider : ITokenProvider
+{
+    public Task<string> ObtenerTokenAsync(CancellationToken cancellationToken) => Task.FromResult("token-de-prueba");
+
+    public void Invalidar()
+    {
     }
 }
 
@@ -665,6 +674,10 @@ internal sealed class FakeOptimisticReservaRepository : IReservaRepository
 
     public Task<bool> ExisteReservaActivaParaAsientoAsync(Guid asientoId) =>
         Task.FromResult(_store.ExisteReservaActiva(asientoId));
+
+    // La prueba de concurrencia no consulta esta operación.
+    public Task<List<Guid>> ObtenerAsientosOcupadosPorEventoAsync(Guid eventoId) =>
+        Task.FromResult(new List<Guid>());
 
     public Task GuardarReservaConcurrenteAsync(Reserva nuevaReserva, Asiento asiento)
     {
