@@ -61,7 +61,8 @@ public sealed class GetEventAvailabilityServiceTests
     {
         var expected = new OperationCanceledException();
         var service = new GetEventAvailabilityService(
-            new FakeAvailabilityQueryRepository(_ => throw expected));
+            new FakeAvailabilityQueryRepository(_ => throw expected),
+            new FakeOccupiedSeatsClient(new HashSet<Guid>()));
 
         var actual = await Assert.ThrowsAsync<OperationCanceledException>(
             () => service.ExecuteAsync(Guid.NewGuid()));
@@ -74,7 +75,8 @@ public sealed class GetEventAvailabilityServiceTests
     {
         var expected = new InvalidOperationException("repository failure");
         var service = new GetEventAvailabilityService(
-            new FakeAvailabilityQueryRepository(_ => throw expected));
+            new FakeAvailabilityQueryRepository(_ => throw expected),
+            new FakeOccupiedSeatsClient(new HashSet<Guid>()));
 
         var actual = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.ExecuteAsync(Guid.NewGuid()));
@@ -82,11 +84,48 @@ public sealed class GetEventAvailabilityServiceTests
         Assert.Same(expected, actual);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_SeatReservedInBooking_IsNotAvailable()
+    {
+        var eventId = Guid.NewGuid();
+        var occupied = new Seat { Id = Guid.NewGuid(), EventId = eventId, Label = "A-01", IsAvailable = true };
+        var free = new Seat { Id = Guid.NewGuid(), EventId = eventId, Label = "A-02", IsAvailable = true };
+        var service = CreateService([occupied, free], new HashSet<Guid> { occupied.Id });
+
+        var result = await service.ExecuteAsync(eventId);
+
+        Assert.False(result.Value!.Seats[0].IsAvailable);
+        Assert.True(result.Value!.Seats[1].IsAvailable);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_BookingUnavailable_UsesCatalog()
+    {
+        var eventId = Guid.NewGuid();
+        var seat = new Seat { Id = Guid.NewGuid(), EventId = eventId, Label = "A-01", IsAvailable = true };
+        var service = CreateService([seat], occupied: null);
+
+        var result = await service.ExecuteAsync(eventId);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value!.Seats[0].IsAvailable);
+    }
+
     private static GetEventAvailabilityService CreateService(
-        IReadOnlyList<Seat> seats)
+        IReadOnlyList<Seat> seats,
+        IReadOnlySet<Guid>? occupied = null)
     {
         return new GetEventAvailabilityService(
-            new FakeAvailabilityQueryRepository(_ => seats));
+            new FakeAvailabilityQueryRepository(_ => seats),
+            new FakeOccupiedSeatsClient(occupied));
+    }
+
+    private sealed class FakeOccupiedSeatsClient(IReadOnlySet<Guid>? occupied) : IOccupiedSeatsClient
+    {
+        public Task<IReadOnlySet<Guid>?> GetOccupiedSeatIdsAsync(
+            Guid eventId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(occupied);
     }
 
     private sealed class FakeAvailabilityQueryRepository(

@@ -666,6 +666,10 @@ internal sealed class FakeOptimisticReservaRepository : IReservaRepository
     public Task<bool> ExisteReservaActivaParaAsientoAsync(Guid asientoId) =>
         Task.FromResult(_store.ExisteReservaActiva(asientoId));
 
+    // La prueba de concurrencia no consulta esta operación.
+    public Task<List<Guid>> ObtenerAsientosOcupadosPorEventoAsync(Guid eventoId) =>
+        Task.FromResult(new List<Guid>());
+
     public Task GuardarReservaConcurrenteAsync(Reserva nuevaReserva, Asiento asiento)
     {
         _store.GuardarConcurrente(nuevaReserva, asiento);

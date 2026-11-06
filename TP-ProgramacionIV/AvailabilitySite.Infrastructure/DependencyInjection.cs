@@ -32,6 +32,12 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
         });
 
+        services.AddHttpClient<IOccupiedSeatsClient, BookingOccupiedSeatsClient>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<BookingOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+        });
+
         services.AddOptions<KeycloakServiceOptions>()
             .Bind(configuration.GetSection(KeycloakServiceOptions.SectionName))
             .Validate(options => Uri.TryCreate(options.Authority, UriKind.Absolute, out _),

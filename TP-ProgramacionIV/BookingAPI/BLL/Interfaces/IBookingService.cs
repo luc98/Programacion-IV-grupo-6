@@ -8,5 +8,6 @@ namespace BookingAPI.BLL.Interfaces
     {
         Task ProcesarSolicitudReservaAsync(SolicitudReservaDto solicitud);
         Task<ReservaResultadoDto?> ObtenerEstadoPorSolicitudIdAsync(Guid solicitudId);
+        Task<List<Guid>> ObtenerAsientosOcupadosAsync(Guid eventoId);
     }
 }

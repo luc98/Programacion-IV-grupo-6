@@ -43,5 +43,11 @@ namespace BookingAPI.Presentation.Controllers
 
             return Ok(resultado);
         }
+
+        // Asientos con reserva retenida o confirmada. Availability los usa para mostrar la disponibilidad real.
+        [HttpGet("eventos/{eventoId:guid}/asientos-ocupados")]
+        [ProducesResponseType(typeof(List<Guid>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> ObtenerAsientosOcupados(Guid eventoId) =>
+            Ok(await _bookingService.ObtenerAsientosOcupadosAsync(eventoId));
     }
 }
