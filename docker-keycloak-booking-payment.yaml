@@ -15,7 +15,7 @@ services:
       - booking_network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.8.1
     container_name: keycloak_server
     command: start-dev --import-realm
     environment:
@@ -23,6 +23,13 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: admin6
+      # El navegador llega por localhost y los contenedores por keycloak:8080. Con esto el
+      # emisor de los tokens es siempre localhost:8080 y cada uno usa la dirección que alcanza.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Keycloak reemplaza esta variable al importar el realm. Sin el secreto real, Google no funciona.
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-**********}
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
@@ -33,6 +40,13 @@ services:
       - keycloak-db
     networks:
       - booking_network
+    healthcheck:
+      # La imagen no trae curl: se consulta el puerto de administración con bash.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   # --- BASES DE DATOS DE MICROSERVICIOS ---
   booking-db:
@@ -49,6 +63,13 @@ services:
       - postgres_booking_data:/var/lib/postgresql/data
     networks:
       - booking_network
+    healthcheck:
+      # -h fuerza TCP: en el primer arranque, Postgres levanta un servidor temporal
+      # que solo escucha el socket local, y sin -h daría sano antes de tiempo.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d BookingDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   payment-db:
     image: postgres:16-alpine
@@ -73,6 +94,8 @@ services:
   mongo-db:
     image: mongo:7.0
     container_name: mongodb_availability
+    # Availability usa transacciones en el outbox, y Mongo solo las permite en un replica set.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -80,6 +103,12 @@ services:
       - mongo_data:/data/db
     networks:
       - booking_network
+    healthcheck:
+      # Inicia el replica set la primera vez y da sano cuando este nodo ya es primario.
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo-db:27017' }] }) }; quit(db.hello().isWritablePrimary ? 0 : 1)\""]
+      interval: 5s
+      timeout: 10s
+      retries: 20
 
   # --- MICROSERVICIOS ---
   booking:
@@ -96,11 +125,16 @@ services:
       Authentication__RequireHttpsMetadata: "false"
       GrpcSettings__PaymentServiceUrl: http://payment:8080
       NotificationService__BaseUrl: http://notification-service:5050
+      AzureServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
+      AzureServiceBus__SolicitudesTopic: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
+      AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking}
     ports:
       - "5156:8080"
     depends_on:
-      - booking-db
-      - keycloak
+      booking-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - booking_network
     restart: unless-stopped
@@ -135,19 +169,25 @@ services:
     image: availability-web:local
     container_name: availability_web
     environment:
+      # Development permite el discovery de Keycloak por HTTP y carga los datos de demostración.
+      ASPNETCORE_ENVIRONMENT: Development
       Keycloak__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      KeycloakService__ClientSecret: ${AVAILABILITY_API_CLIENT_SECRET:-**********}
       Booking__BaseUrl: http://booking:8080/
-      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017}
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017/?replicaSet=rs0}
       MongoDB__DatabaseName: AvailabilityDb
       ServiceBus__TopicName: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
       ServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
     ports:
       - "5215:8080"
     depends_on:
-      - mongo-db
-      - keycloak
-      - booking
+      mongo-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      booking:
+        condition: service_started
     networks:
       - booking_network
     restart: unless-stopped
