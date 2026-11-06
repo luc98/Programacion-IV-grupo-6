@@ -24,6 +24,7 @@ public sealed class BookingReservationStatusClient(HttpClient httpClient, IAcces
         using var request = new HttpRequestMessage(HttpMethod.Get, $"api/reservas/solicitudes/{requestId}");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.TryAddWithoutValidation("x-trace-id", requestId.ToString());
 
         HttpResponseMessage response;
         try
