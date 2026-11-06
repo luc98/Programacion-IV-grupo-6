@@ -8,11 +8,12 @@ Corresponde al punto 3.h del trabajo práctico (Grupo 6, dupla 4). El profesor i
 
 | Hecho | Pendiente |
 |---|---|
-| Entrada HTTP `POST /api/notifications` con el contrato de Booking | Que Booking implemente la llamada HTTP: hoy no está en su rama |
+| Entrada HTTP `POST /api/notifications` con el contrato de Booking, que ya la usa | Encender la validación del token: que Booking mande el token y que el realm agregue la audiencia `notifications-api` a su cliente |
 | Traducción del evento y plantillas por configuración | Envío real del aviso (mail o push): hoy sale por consola |
 | Descarte de duplicados | Almacén compartido de avisos ya enviados (hoy es memoria) |
 | Logs con Serilog, `TraceId` y auditoría de inicio y fin | |
-| Pruebas (54), Dockerfile y prueba de humo con Docker | Sumar el servicio al Compose del grupo (`docker-keycloak-booking-payment.yaml`), a cargo de luc98 |
+| Validación opcional del token de Keycloak (punto 3.e), apagada por defecto | |
+| Pruebas (57), Dockerfile y prueba de humo con Docker | |
 
 ## Cómo funciona
 
@@ -70,7 +71,7 @@ Cuando el pago se confirma cambian `tipoEvento` a `ReservaConfirmada` y `estado`
 | `413 Content Too Large` | El cuerpo supera los 64 KB |
 | `503 Service Unavailable` | No se pudo enviar el aviso. El que llama puede reintentar: la clave se libera y el reintento sí avisa |
 
-- No pide autenticación, porque el contrato acordado no la incluye y el servicio solo se publica en `127.0.0.1` o dentro de la red de Docker.
+- Autenticación: por defecto no pide token, porque el contrato acordado con Booking no lo incluye y el servicio solo se publica en `127.0.0.1` o dentro de la red de Docker. La validación del token de Keycloak está implementada y se enciende por configuración (ver el apartado siguiente).
 - Al ser una llamada directa no hay broker que guarde el evento: si el notificador está caído, el aviso no llega salvo que el que llama reintente. Booking le da 2 segundos y no debería fallar una reserva por esto.
 - El puerto es el 5050: con `dotnet run` lo fija `launchSettings.json` y en Docker, `ASPNETCORE_URLS`. Conviene publicarlo solo en `127.0.0.1:5050`. Dentro del Compose del grupo, otro contenedor lo llama a `http://notification-service:5050`.
 
@@ -80,6 +81,21 @@ curl -i -X POST http://127.0.0.1:5050/api/notifications \
   -H 'content-type: application/json' \
   -d '{"tipoEvento":"ReservaCreada","reservaId":"3fa85f64","usuarioId":"user-123","fechaVencimientoUtc":"2026-11-05T18:05:00Z"}'
 ```
+
+### Autenticación opcional (punto 3.e)
+
+Con `Authentication__Enabled=true` el endpoint exige un token Bearer de Keycloak: valida la firma, el emisor y el vencimiento, y que el cliente que lo pide (el claim `azp`) esté en `AllowedClients`. Sin token responde `401` y con el token de otro cliente, `403`. Viene apagada para no romper el aviso de Booking, que hoy no manda token.
+
+| Clave (sección `Authentication`) | Por defecto | Para qué sirve |
+|---|---|---|
+| `Enabled` | `false` | Enciende la validación |
+| `Authority` | `http://localhost:8080/realms/reservas-realm` | Dirección del realm, de donde se bajan las claves de firma |
+| `ValidIssuer` | vacío | Emisor esperado en el token. Si está vacío se usa `Authority`. Dentro del Compose hace falta, porque Keycloak firma con `http://localhost:8080` |
+| `ValidateAudience` y `Audience` | `false` y `notifications-api` | Para exigir la audiencia hay que agregar al realm un mapeo de audiencia |
+| `AllowedClients` | `[ "booking-api" ]` | Clientes de Keycloak que pueden llamar |
+| `RequireHttpsMetadata` | `false` | Desarrollo local sin HTTPS |
+
+Para encenderla hacen falta dos cambios fuera de este servicio: que Booking pida su token a Keycloak y lo mande en el header `Authorization: Bearer`, y, si se quiere exigir la audiencia, que el realm agregue `notifications-api` a los tokens de `booking-api`.
 
 ## Qué pasa con cada evento
 
@@ -147,7 +163,7 @@ Desde la raíz del repositorio:
 
 ```bash
 dotnet run --project TP-ProgramacionIV/NotificationService
-dotnet test TP-ProgramacionIV/NotificationService.slnx
+dotnet test TP-ProgramacionIV/NotificationService.Tests/NotificationService.Tests.csproj
 ```
 
 Con Docker:
@@ -176,4 +192,4 @@ En el Compose del grupo el servicio se llama `notification-service`, escucha en 
 | `NotificationOptions`, `TemplateRenderer` | Patrón Options, abierto/cerrado | Sumar un tipo de aviso es configuración, no código |
 | `IDeduplicationStore` | Idempotencia | Evita avisar dos veces si el que llama reintenta. Es una interfaz para cambiar el almacenamiento |
 
-El código no lleva comentarios. Las justificaciones están en esta tabla y en el registro de cambios del proyecto.
+Como pide el enunciado, las decisiones y los patrones se justifican en el código con comentarios breves, marcados con `[JUSTIFICACIÓN - ...]`, en las clases principales. Esta tabla las resume.

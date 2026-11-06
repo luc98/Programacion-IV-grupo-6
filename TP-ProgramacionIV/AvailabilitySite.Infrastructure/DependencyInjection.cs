@@ -6,6 +6,7 @@ using AvailabilitySite.Infrastructure.Outbox;
 using AvailabilitySite.Infrastructure.Persistence.MongoDb;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace AvailabilitySite.Infrastructure;
@@ -14,9 +15,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAvailabilityInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment? environment = null)
     {
-        services.AddAvailabilityMongoDb(configuration);
+        services.AddAvailabilityMongoDb(configuration, environment?.IsDevelopment() == true);
 
         services.AddOptions<BookingOptions>()
             .Bind(configuration.GetSection(BookingOptions.SectionName))

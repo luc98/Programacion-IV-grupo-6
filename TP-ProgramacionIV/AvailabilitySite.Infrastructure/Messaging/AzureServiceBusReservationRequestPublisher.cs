@@ -23,8 +23,13 @@ public sealed class AzureServiceBusReservationRequestPublisher(IServiceBusMessag
         var serviceBusMessage = new ServiceBusMessage(body)
         {
             MessageId = message.SolicitudId.ToString(),
+            CorrelationId = message.SolicitudId.ToString(),
             ContentType = "application/json",
-            Subject = "ReservationRequested"
+            Subject = "ReservationRequested",
+            ApplicationProperties =
+            {
+                { "TraceId", message.SolicitudId.ToString() }
+            }
         };
 
         return sender.SendMessageAsync(serviceBusMessage, cancellationToken);

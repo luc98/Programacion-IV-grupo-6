@@ -1,3 +1,4 @@
+using Serilog;
 using BookingAPI.BLL.Gateways;
 using BookingAPI.BLL.Interfaces;
 using BookingAPI.BLL.Jobs;
@@ -9,6 +10,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services));
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

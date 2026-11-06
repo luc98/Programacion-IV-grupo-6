@@ -6,6 +6,8 @@ using NotificationService.Messaging;
 
 namespace NotificationService.Handling;
 
+// [JUSTIFICACIÓN - Composición y trazabilidad] Une el traductor con el manejador, abre el contexto de log con el TraceId
+// y registra el inicio y el fin de cada llamada.
 public sealed class EventProcessor(
     IEventMapper mapper,
     NotificationHandler handler,
@@ -31,6 +33,7 @@ public sealed class EventProcessor(
         return result;
     }
 
+    // [JUSTIFICACIÓN - Rechazo sin reintento] Un evento que no se puede traducir se rechaza con una advertencia: reintentarlo no lo arreglaría.
     private async Task<ProcessingResult> TranslateAndHandleAsync(IncomingEvent incomingEvent, CancellationToken cancellationToken)
     {
         if (!mapper.TryMap(incomingEvent, out var request, out var error))

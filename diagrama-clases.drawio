@@ -1,9 +1,15 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Página-1" id="_4sfm3MAWi2e3UWU1Nln">
-    <mxGraphModel dx="2876" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2413" dy="1994" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="ClNcQys1KfLlhImeIv90-7" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="" vertex="1">
+          <mxGeometry height="1510" width="1510" x="-550" y="-390" as="geometry" />
+        </mxCell>
+        <mxCell id="ClNcQys1KfLlhImeIv90-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="" vertex="1">
+          <mxGeometry height="660" width="1060" x="-520" y="-140" as="geometry" />
+        </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-22" edge="1" parent="1" source="bAHuPf67l8XYGOOVeNLc-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;dashed=1;fillColor=#60a917;strokeColor=#2D7600;" target="bAHuPf67l8XYGOOVeNLc-16">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -76,13 +82,13 @@
           <mxGeometry height="80" width="60" x="-175" y="920" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-16" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;" value="" vertex="1">
-          <mxGeometry height="140" width="140" x="-30" y="60" as="geometry" />
+          <mxGeometry height="140" width="140" x="-60" y="-40" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-17" parent="1" style="text;whiteSpace=wrap;html=1;" value="Message Broker" vertex="1">
-          <mxGeometry height="40" width="110" x="-15" y="30" as="geometry" />
+          <mxGeometry height="40" width="110" x="-37.5" y="-60" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-18" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
-          <mxGeometry height="130" width="130" x="830" y="100" as="geometry" />
+          <mxGeometry height="130" width="130" x="820" y="110" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="notification API" vertex="1">
           <mxGeometry height="30" width="120" x="840" y="60" as="geometry" />
@@ -94,10 +100,10 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-23" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;rounded=0;fontColor=#ffffff;" value="publish" vertex="1">
-          <mxGeometry height="30" width="95" x="-210" y="210" as="geometry" />
+          <mxGeometry height="30" width="95" x="-230" y="-10" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-27" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;rounded=0;fontColor=#ffffff;" value="suscribe" vertex="1">
-          <mxGeometry height="30" width="95" x="290" y="10" as="geometry" />
+          <mxGeometry height="30" width="95" x="230" y="-10" as="geometry" />
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-31" edge="1" parent="1" source="bAHuPf67l8XYGOOVeNLc-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=1;exitDx=0;exitDy=0;defaultLabelBackgroundColor=page;endArrow=none;endFill=0;fillColor=#0050ef;strokeColor=#001DBC;" target="bAHuPf67l8XYGOOVeNLc-30" value="">
           <mxGeometry relative="1" x="-0.0001" as="geometry">
@@ -128,6 +134,12 @@
         </mxCell>
         <mxCell id="bAHuPf67l8XYGOOVeNLc-46" edge="1" parent="1" source="bAHuPf67l8XYGOOVeNLc-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.038;entryY=0.377;entryDx=0;entryDy=0;entryPerimeter=0;defaultLabelBackgroundColor=page;fillColor=#60a917;strokeColor=#2D7600;" target="bAHuPf67l8XYGOOVeNLc-18">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ClNcQys1KfLlhImeIv90-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#9673a6;fillColor=#e1d5e7;align=center;verticalAlign=middle;rounded=0;" value="HTTP POST /api/notifications" vertex="1">
+          <mxGeometry height="30" width="160" x="580" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ClNcQys1KfLlhImeIv90-6" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Zona de Consistencia Eventual&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="297.5" x="-510" y="-130" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

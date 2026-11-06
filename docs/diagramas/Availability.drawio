@@ -1,0 +1,171 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Arquitectura Availability" id="s4BAFM4hPy4Ns-f04dIT">
+    <mxGraphModel dx="395" dy="1077" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-136" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=25;fontStyle=1;fontColor=#1F2937;" value="AVAILABILITY SITE — ARQUITECTURA DE SOFTWARE" vertex="1">
+          <mxGeometry height="55" width="1780" x="1958.030303030303" y="55.87878787878799" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-137" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#455A64;strokeWidth=3;dashed=1;verticalAlign=top;align=left;spacingLeft=18;spacingTop=12;fontSize=18;fontStyle=1;fontColor=#37474F;" value="" vertex="1">
+          <mxGeometry height="1050" width="1120" x="2218.030303030303" y="140.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-138" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#0288D1;fontSize=15;fontStyle=1;" value="USUARIO&lt;br/&gt;&lt;font style=&#39;font-size:11px&#39;&gt;Navegador&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="190" x="1963.030303030303" y="200.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-139" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;fontSize=15;fontStyle=1;" value="KEYCLOAK&lt;br/&gt;&lt;font style=&#39;font-size:11px&#39;&gt;Authorization Server&lt;br/&gt;Realm: reservas-realm&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="300" x="3428.030303030303" y="180.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-140" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#EF6C00;fontSize=15;fontStyle=1;" value="AZURE SERVICE BUS&lt;br/&gt;&lt;font style=&#39;font-size:11px&#39;&gt;Topic de solicitudes&lt;br/&gt;ReservationRequested&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="300" x="3428.030303030303" y="645.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-141" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=14;fontStyle=1;" value="BOOKING API — SISTEMA EXTERNO&lt;br/&gt;&lt;font style=&#39;font-size:11px&#39;&gt;REST API + Consumer de Service Bus&lt;/font&gt;" vertex="1">
+          <mxGeometry height="115" width="300" x="3428.030303030303" y="915.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-142" parent="1" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;size=15;fillColor=#EDE7F6;strokeColor=#7E57C2;fontSize=14;fontStyle=1;" value="MONGODB ATLAS&lt;br/&gt;&lt;font style=&#39;font-size:11px&#39;&gt;Events · Seats · ReservationRequests · OutboxMessages&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="440" x="2608.030303030303" y="1235.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-143" parent="1" style="swimlane;html=1;startSize=32;horizontal=1;rounded=1;fillColor=#E3F2FD;swimlaneFillColor=#FFFFFF;strokeColor=#1976D2;fontStyle=1;fontSize=14;" value="1. PRESENTATION — ASP.NET CORE MVC" vertex="1">
+          <mxGeometry height="165" width="1040" x="2258.030303030303" y="200.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-144" parent="1" style="swimlane;html=1;startSize=32;horizontal=1;rounded=1;fillColor=#E8F5E9;swimlaneFillColor=#FFFFFF;strokeColor=#388E3C;fontStyle=1;fontSize=14;" value="2. APPLICATION — CASOS DE USO Y CONTRATOS" vertex="1">
+          <mxGeometry height="300" width="1040" x="2258.030303030303" y="400.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-145" parent="1" style="swimlane;html=1;startSize=32;horizontal=1;rounded=1;fillColor=#FFF8E1;swimlaneFillColor=#FFFFFF;strokeColor=#F9A825;fontStyle=1;fontSize=14;" value="3. DOMAIN" vertex="1">
+          <mxGeometry height="105" width="1040" x="2258.030303030303" y="735.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-146" parent="1" style="swimlane;html=1;startSize=32;horizontal=1;rounded=1;fillColor=#F3E5F5;swimlaneFillColor=#FFFFFF;strokeColor=#8E24AA;fontStyle=1;fontSize=14;" value="4. INFRASTRUCTURE — ADAPTADORES" vertex="1">
+          <mxGeometry height="275" width="1040" x="2258.030303030303" y="875.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-147" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=13;" value="Controllers MVC&lt;br/&gt;Razor Views · ViewModels&lt;br/&gt;Endpoints de consulta y reserva" vertex="1">
+          <mxGeometry height="85" width="260" x="2288.030303030303" y="250.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-148" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=13;" value="Autenticación de usuario&lt;br/&gt;OIDC Authorization Code + PKCE&lt;br/&gt;Cookie de sesión" vertex="1">
+          <mxGeometry height="85" width="300" x="2593.030303030303" y="250.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-149" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=13;" value="ICurrentUserContext&lt;br/&gt;&lt;font style=&#39;font-size:10px&#39;&gt;Obtiene el subject (sub) autenticado&lt;/font&gt;" vertex="1">
+          <mxGeometry height="85" width="285" x="2938.030303030303" y="250.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-150" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=13;" value="Casos de uso&lt;br/&gt;IListEventsUseCase&lt;br/&gt;IGetEventAvailabilityUseCase&lt;br/&gt;IRequestReservationUseCase&lt;br/&gt;IGetReservationRequestStatusUseCase" vertex="1">
+          <mxGeometry height="160" width="340" x="2288.030303030303" y="450.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-151" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=13;" value="Puertos / contratos&lt;br/&gt;IReservationRequestRepository&lt;br/&gt;IReservationRequestPublisher&lt;br/&gt;IReservationStatusClient&lt;br/&gt;ICurrentUserContext" vertex="1">
+          <mxGeometry height="160" width="330" x="2668.030303030303" y="450.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-152" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=13;" value="DTOs · Result&amp;lt;T&amp;gt;&lt;br/&gt;Validaciones · Idempotencia&lt;br/&gt;Solicitud inicial: Pending" vertex="1">
+          <mxGeometry height="160" width="225" x="3038.030303030303" y="450.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-153" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=13;" value="Entidades de dominio&lt;br/&gt;Event · Seat · Reservation Request" vertex="1">
+          <mxGeometry height="45" width="390" x="2578.030303030303" y="770.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-154" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="MongoDB Repositories&lt;br/&gt;Events · Seats · ReservationRequests" vertex="1">
+          <mxGeometry height="75" width="270" x="2288.030303030303" y="935.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-155" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="Transactional Outbox&lt;br/&gt;&lt;b&gt;Una transacción MongoDB:&lt;/b&gt;&lt;br/&gt;ReservationRequests + OutboxMessages" vertex="1">
+          <mxGeometry height="90" width="300" x="2593.030303030303" y="935.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-156" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="Outbox Background Worker&lt;br/&gt;Claim / Lease → Publish&lt;br/&gt;Retry ante fallos" vertex="1">
+          <mxGeometry height="90" width="300" x="2928.030303030303" y="935.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-157" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="Booking REST Client&lt;br/&gt;Consulta estado de solicitud&lt;br/&gt;Authorization: Bearer" vertex="1">
+          <mxGeometry height="75" width="270" x="2288.030303030303" y="1055.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-158" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="Client Credentials Token Provider&lt;br/&gt;Obtiene token de servicio&lt;br/&gt;Cache / renovación" vertex="1">
+          <mxGeometry height="75" width="300" x="2593.030303030303" y="1055.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-159" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#8E24AA;fontSize=13;" value="Azure Service Bus Publisher&lt;br/&gt;Publica ReservationRequested&lt;br/&gt;MessageId = SolicitudId" vertex="1">
+          <mxGeometry height="75" width="300" x="2928.030303030303" y="1055.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-160" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;fontSize=12;" value="FLUJO DE IDENTIDAD DE USUARIO&lt;br/&gt;El usuario inicia sesión en Keycloak.&lt;br/&gt;Availability obtiene la identidad autenticada.&lt;br/&gt;RequestReservation usa ICurrentUserContext;&lt;br/&gt;el UsuarioId no se acepta libremente desde el formulario." vertex="1">
+          <mxGeometry height="165" width="245" x="1963.030303030303" y="335.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-161" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;fontSize=12;" value="FLUJO DE IDENTIDAD DE SERVICIO&lt;br/&gt;Availability solicita token mediante&lt;br/&gt;Client Credentials para consultar Booking.&lt;br/&gt;Es independiente de la sesión OIDC del usuario." vertex="1">
+          <mxGeometry height="145" width="310" x="3423.030303030303" y="335.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-162" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" value="AUTORIDAD DEL ESTADO&lt;br/&gt;Availability: estado de recepción / seguimiento local.&lt;br/&gt;Pending mientras Booking no informa resultado.&lt;br/&gt;Booking: autoridad del estado definitivo&lt;br/&gt;(Retenida, Confirmada, Rechazada, Vencida)." vertex="1">
+          <mxGeometry height="115" width="310" x="3423.030303030303" y="510.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-163" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#EF6C00;fontSize=12;" value="FLUJO ASÍNCRONO&lt;br/&gt;Outbox Worker → Azure Service Bus&lt;br/&gt;→ suscripción / Consumer de Booking.&lt;br/&gt;No es una llamada HTTP directa." vertex="1">
+          <mxGeometry height="105" width="310" x="3423.030303030303" y="780.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-164" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#E0F2F1;strokeColor=#00897B;fontSize=12;" value="DIRECCIÓN DE DEPENDENCIAS — CLEAN ARCHITECTURE&lt;br/&gt;Presentation → Application → Domain&lt;br/&gt;Infrastructure implementa interfaces de Application&lt;br/&gt;y depende de Application / Domain.&lt;br/&gt;Application no referencia MongoDB ni Azure SDK." vertex="1">
+          <mxGeometry height="170" width="245" x="1963.030303030303" y="935.878787878788" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-165" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-138" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-147" value="HTTPS / HTTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-166" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-148" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C2185B;" target="8XgTc4LalFzi4J8Ib1tA-139" value="OIDC Authorization Code + PKCE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-167" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-147" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-150" value="invoca casos de uso">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-168" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-149" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-151" value="ICurrentUserContext">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-169" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-150" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-153" value="usa modelo de dominio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-170" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-154" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#7E57C2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-151" value="implementa repositorio">
+          <mxGeometry relative="1" x="-1" y="140" as="geometry">
+            <mxPoint x="-138" y="117" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-171" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-159" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#7E57C2;" target="8XgTc4LalFzi4J8Ib1tA-151" value="implementa publisher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-172" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-157" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#7E57C2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-151" value="implementa status client">
+          <mxGeometry relative="1" x="-1" y="-146" as="geometry">
+            <mxPoint x="-138" y="-99" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-173" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-158" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-157" value="provee token">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-18" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-174" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-155" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-142" value="persistencia atómica">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="48" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-175" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-154" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-142" value="lectura / escritura">
+          <mxGeometry relative="1" x="-1" y="-146" as="geometry">
+            <mxPoint x="-135" y="-89" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-176" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-155" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-156" value="mensaje pendiente">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-18" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-177" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-156" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-159" value="publicación / retry">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="72" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-178" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-159" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;;fontColor=#FFFFFF;labelBackgroundColor=#20202A" target="8XgTc4LalFzi4J8Ib1tA-140" value="publica ReservationRequested">
+          <mxGeometry relative="1" x="0.0206" y="-82" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-179" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-140" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-141" value="Topic → Subscription / Consumer">
+          <mxGeometry relative="1" x="-0.5258" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-181" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-158" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C2185B;dashed=1;" target="8XgTc4LalFzi4J8Ib1tA-139" value="Token endpoint · Client Credentials">
+          <mxGeometry relative="1" x="-0.024" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-183" edge="1" parent="1" source="8XgTc4LalFzi4J8Ib1tA-144" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="8XgTc4LalFzi4J8Ib1tA-145" value="depende de">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8XgTc4LalFzi4J8Ib1tA-184" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontColor=#455A64;" value="LEYENDA: Flecha continua = flujo de ejecución / comunicación. Flecha discontinua = implementación de puerto o flujo de autenticación. Contenedor externo = servicio fuera de Availability." vertex="1">
+          <mxGeometry height="45" width="1040" x="2258.030303030303" y="1205.878787878788" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

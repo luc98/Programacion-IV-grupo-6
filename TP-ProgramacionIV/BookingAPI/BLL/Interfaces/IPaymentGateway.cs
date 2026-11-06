@@ -8,6 +8,6 @@ namespace BookingAPI.BLL.Interfaces
     // Abierto a modificaciones (temporal)
     public interface IPaymentGateway
     {
-        Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto);
+        Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto, string? traceId = null);
     }
 }

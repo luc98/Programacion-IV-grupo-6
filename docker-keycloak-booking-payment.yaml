@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- INFRAESTRUCTURA DE SEGURIDAD Authorization Server ---
   keycloak-db:
@@ -10,7 +8,7 @@ services:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: admin6
     ports:
-      - "5432:5432"
+      - "5431:5432"
     volumes:
       - keycloak_data:/var/lib/postgresql/data
     networks:
@@ -19,7 +17,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak_server
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
@@ -29,12 +27,14 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
+    volumes:
+      - ./docker-keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     depends_on:
       - keycloak-db
     networks:
       - booking_network
 
-  # --- BASES DE DATOS DE MICROSERVICIOS booking API ---
+  # --- BASES DE DATOS DE MICROSERVICIOS ---
   booking-db:
     image: postgres:16-alpine
     container_name: postgres-booking
@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: BookingDb
     ports:
-      - "5433:5432" 
+      - "5432:5432"
     volumes:
       - postgres_booking_data:/var/lib/postgresql/data
     networks:
@@ -58,7 +58,7 @@ services:
       POSTGRES_USER: payment
       POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:-payment-dev}
     ports:
-      - "5434:5432" 
+      - "5433:5432"
     volumes:
       - payment_data:/var/lib/postgresql/data
     networks:
@@ -70,7 +70,45 @@ services:
       retries: 12
     restart: unless-stopped
 
-  # --- MICROSERVICIOS payment ---
+  mongo-db:
+    image: mongo:7.0
+    container_name: mongodb_availability
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - booking_network
+
+  # --- MICROSERVICIOS ---
+  booking:
+    build:
+      context: ./TP-ProgramacionIV
+      dockerfile: BookingAPI/Dockerfile
+    image: booking-api:local
+    container_name: booking_api
+    environment:
+      ConnectionStrings__BookingDb: Host=booking-db;Port=5432;Database=BookingDb;Username=postgres;Password=postgrespassword
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__Audience: booking-api
+      Authentication__TokenUrl: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/protocol/openid-connect/token
+      Authentication__ClientSecret: ${BOOKING_CLIENT_SECRET:-**********}
+      Authentication__RequireHttpsMetadata: "false"
+      GrpcSettings__PaymentServiceUrl: http://payment:8080
+      NotificationService__BaseUrl: http://notification-service:5050
+      AzureServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
+      AzureServiceBus__SolicitudesTopic: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
+      AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking-sub}
+    ports:
+      - "5156:8080"
+    depends_on:
+      - booking-db
+      - keycloak
+    networks:
+      - booking_network
+    restart: unless-stopped
+
   payment:
     build:
       context: ./TP-ProgramacionIV
@@ -79,8 +117,9 @@ services:
     container_name: payment_api
     environment:
       ConnectionStrings__PaymentDb: Host=payment-db;Port=5432;Database=PaymentDb;Username=payment;Password=${PAYMENT_DB_PASSWORD:-payment-dev};GSS Encryption Mode=Disable
-      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-booking-realm}
-      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-booking-realm}
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+#     Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__RequireHttpsMetadata: "false"
       Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-false}
       BancoSimulado__RetardoMs: ${PAYMENT_RETARDO_MS:-0}
@@ -89,6 +128,31 @@ services:
     depends_on:
       payment-db:
         condition: service_healthy
+    networks:
+      - booking_network
+    restart: unless-stopped
+
+  availability-web:
+    build:
+      context: ./TP-ProgramacionIV
+      dockerfile: AvailabilitySite.Web/Dockerfile
+    image: availability-web:local
+    container_name: availability_web
+    environment:
+      Keycloak__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      KeycloakService__ClientSecret: ${AVAILABILITY_CLIENT_SECRET:-**********}
+      Booking__BaseUrl: http://booking:8080/
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017}
+      MongoDB__DatabaseName: AvailabilityDb
+      ServiceBus__TopicName: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
+      ServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
+    ports:
+      - "5215:8080"
+    depends_on:
+      - mongo-db
+      - keycloak
+      - booking
     networks:
       - booking_network
     restart: unless-stopped
@@ -112,3 +176,4 @@ volumes:
   keycloak_data:
   postgres_booking_data:
   payment_data:
+  mongo_data:

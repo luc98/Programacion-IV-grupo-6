@@ -4,8 +4,8 @@ using MongoDB.Driver;
 
 namespace AvailabilitySite.Infrastructure.Persistence.MongoDb;
 
-// Crea los índices al iniciar. Es idempotente: si ya existen con la misma definición no hace nada.
-// EventId, RequestId y MessageId son el _id de su colección, que MongoDB indexa (único) siempre.
+// Crea los índices de MongoDB al arrancar la aplicación.
+// El seeding de datos de prueba está separado y se registra únicamente en Development.
 public sealed class MongoIndexInitializer(MongoDbContext context)
 {
     public const string SeatsByEvent = "ux_seats_event_seat";
@@ -26,8 +26,6 @@ public sealed class MongoIndexInitializer(MongoDbContext context)
 
             await context.ReservationRequests.Indexes.CreateManyAsync(
                 [
-                    // Idempotencia: la base garantiza una sola solicitud por usuario y clave,
-                    // aunque lleguen dos envíos al mismo tiempo.
                     new CreateIndexModel<ReservationRequestDocument>(
                         Builders<ReservationRequestDocument>.IndexKeys.Ascending(r => r.UserId).Ascending(r => r.IdempotencyKey),
                         new CreateIndexOptions { Name = RequestsByIdempotencyKey, Unique = true }),
@@ -42,16 +40,15 @@ public sealed class MongoIndexInitializer(MongoDbContext context)
                     new CreateIndexModel<OutboxMessageDocument>(
                         Builders<OutboxMessageDocument>.IndexKeys.Ascending(m => m.Status).Ascending(m => m.CreatedAt),
                         new CreateIndexOptions { Name = OutboxByStatusAndDate }),
-                    // Lo usa la búsqueda del próximo mensaje a reclamar.
                     new CreateIndexModel<OutboxMessageDocument>(
                         Builders<OutboxMessageDocument>.IndexKeys.Ascending(m => m.Status).Ascending(m => m.NextAttemptAt),
                         new CreateIndexOptions { Name = OutboxByStatusAndNextAttempt }),
-                    // Un solo mensaje de cada tipo por solicitud.
                     new CreateIndexModel<OutboxMessageDocument>(
                         Builders<OutboxMessageDocument>.IndexKeys.Ascending(m => m.RequestId).Ascending(m => m.MessageType),
                         new CreateIndexOptions { Name = OutboxByRequest, Unique = true }),
                 ],
                 cancellationToken);
+
         });
 }
 
@@ -61,4 +58,3 @@ internal sealed class MongoIndexInitializerHostedService(MongoIndexInitializer i
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
-

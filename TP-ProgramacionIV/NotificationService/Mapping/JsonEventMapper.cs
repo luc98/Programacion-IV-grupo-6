@@ -8,6 +8,8 @@ using NotificationService.Messaging;
 
 namespace NotificationService.Mapping;
 
+// [JUSTIFICACIÓN - Capa anticorrupción] Único lugar que interpreta el cuerpo del evento. Lee un JSON simple; el destinatario y la clave
+// de duplicados salen de la configuración, así lo que cambie del emisor se absorbe sin tocar el código.
 public sealed class JsonEventMapper(IOptions<MappingOptions> options) : IEventMapper
 {
     private readonly MappingOptions _options = options.Value;
@@ -43,6 +45,7 @@ public sealed class JsonEventMapper(IOptions<MappingOptions> options) : IEventMa
         return true;
     }
 
+    // [JUSTIFICACIÓN - Lectura flexible] Se usa JsonDocument y no una clase fija: sirve para cualquier emisor con campos planos y los nombres no distinguen mayúsculas.
     private static bool TryReadData(
         IncomingEvent incomingEvent,
         [NotNullWhen(true)] out Dictionary<string, string>? data,
@@ -91,6 +94,8 @@ public sealed class JsonEventMapper(IOptions<MappingOptions> options) : IEventMa
         }
     }
 
+    // [JUSTIFICACIÓN - Idempotencia] La clave usa primero los campos de negocio configurados (el mismo evento aunque cambie el TraceId);
+    // si faltan, una huella del cuerpo.
     private string BuildDeduplicationKey(IncomingEvent incomingEvent, string type, Dictionary<string, string> data)
     {
         if (_options.DeduplicationFields.Count > 0)

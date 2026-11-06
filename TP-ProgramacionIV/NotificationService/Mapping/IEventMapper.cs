@@ -4,6 +4,7 @@ using NotificationService.Messaging;
 
 namespace NotificationService.Mapping;
 
+// [JUSTIFICACIÓN - Capa anticorrupción] Si el evento no se entiende, devuelve false con el motivo y no lanza excepciones.
 public interface IEventMapper
 {
     bool TryMap(
