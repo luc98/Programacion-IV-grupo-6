@@ -4,6 +4,8 @@ using NotificationService.Core;
 
 namespace NotificationService.Templates;
 
+// [JUSTIFICACIÓN - Abierto/cerrado (OCP)] Las plantillas están en la configuración: un tipo de aviso nuevo no obliga a recompilar.
+// Un dato faltante se muestra como (sin dato).
 public sealed partial class TemplateRenderer
 {
     private const string MissingData = "(sin dato)";
@@ -15,6 +17,7 @@ public sealed partial class TemplateRenderer
         _templates = new Dictionary<string, string>(options.Value.Templates, StringComparer.OrdinalIgnoreCase);
     }
 
+    // [JUSTIFICACIÓN - Sin excepciones] Si falta la plantilla devuelve false: el manejador rechaza el aviso con su motivo.
     public bool TryRender(NotificationRequest request, out string text)
     {
         if (!_templates.TryGetValue(request.Type, out var template))

@@ -4,12 +4,16 @@ using NotificationService.Templates;
 
 namespace NotificationService.Handling;
 
+// [JUSTIFICACIÓN - Responsabilidad única (SRP)] Decide qué hacer con un aviso sin conocer el transporte ni el formato:
+// descarta los repetidos, arma el texto y lo envía.
 public sealed class NotificationHandler(
     TemplateRenderer renderer,
     INotificationSender sender,
     IDeduplicationStore deduplication,
     ILogger<NotificationHandler> logger)
 {
+    // El orden importa: primero se reserva la clave, después se busca la plantilla y recién al final se envía.
+    // Si no se llegó a enviar, la clave se libera para que un reintento sí avise.
     public async Task<ProcessingResult> HandleAsync(NotificationRequest request, CancellationToken cancellationToken)
     {
         if (!deduplication.TryBegin(request.DeduplicationKey))

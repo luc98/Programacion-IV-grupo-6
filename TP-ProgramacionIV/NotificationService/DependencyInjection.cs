@@ -8,6 +8,8 @@ namespace NotificationService;
 
 public static class DependencyInjection
 {
+    // [JUSTIFICACIÓN - Inversión de dependencias] Toda la composición está acá: las clases dependen de interfaces
+    // y este es el único lugar que elige las implementaciones.
     public static IServiceCollection AddNotificationCore(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));

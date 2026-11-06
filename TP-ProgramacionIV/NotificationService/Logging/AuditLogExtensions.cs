@@ -1,5 +1,7 @@
 namespace NotificationService.Logging;
 
+// [JUSTIFICACIÓN - Plantilla común de logs, punto 3.f] Inicio y fin de cada operación con Servicio, Etapa, Operacion, TraceId,
+// Resultado y DuracionMs. Los demás servicios del grupo la pueden copiar.
 public static class AuditLogExtensions
 {
     public static void AuditStart(this ILogger logger, string operation) =>

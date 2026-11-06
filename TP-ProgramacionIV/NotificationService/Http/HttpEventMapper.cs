@@ -4,6 +4,8 @@ using NotificationService.Messaging;
 
 namespace NotificationService.Http;
 
+// [JUSTIFICACIÓN - Capa anticorrupción] El header manda sobre el campo del cuerpo porque el emisor lo fija a propósito;
+// si falta, se usa el del cuerpo.
 public static class HttpEventMapper
 {
     public const string TraceIdHeader = "x-trace-id";
@@ -28,6 +30,7 @@ public static class HttpEventMapper
     private static string? FirstNotBlank(params string?[] values) =>
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
 
+    // [JUSTIFICACIÓN - Tolerancia] Si el cuerpo no es un JSON devuelve null y no lanza: el rechazo lo decide el traductor con un motivo claro.
     private static string? ReadTextField(string body, string field)
     {
         try

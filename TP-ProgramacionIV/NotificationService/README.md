@@ -176,4 +176,4 @@ En el Compose del grupo el servicio se llama `notification-service`, escucha en 
 | `NotificationOptions`, `TemplateRenderer` | Patrón Options, abierto/cerrado | Sumar un tipo de aviso es configuración, no código |
 | `IDeduplicationStore` | Idempotencia | Evita avisar dos veces si el que llama reintenta. Es una interfaz para cambiar el almacenamiento |
 
-El código no lleva comentarios. Las justificaciones están en esta tabla y en el registro de cambios del proyecto.
+Como pide el enunciado, las decisiones y los patrones se justifican en el código con comentarios breves, marcados con `[JUSTIFICACIÓN - ...]`, en las clases principales. Esta tabla las resume.
