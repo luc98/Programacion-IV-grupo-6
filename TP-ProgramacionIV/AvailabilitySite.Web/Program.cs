@@ -62,7 +62,11 @@ builder.Services.AddAuthentication(options =>
         options.MapInboundClaims = false;
         options.SaveTokens = false;
         options.GetClaimsFromUserInfoEndpoint = false;
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.RequireHttpsMetadata = keycloak.RequireHttpsMetadata;
+        if (!string.IsNullOrWhiteSpace(keycloak.MetadataAddress))
+        {
+            options.MetadataAddress = keycloak.MetadataAddress;
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -83,15 +87,16 @@ builder.AddAvailabilityPresentation();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseExceptionHandler("/Home/Error");
-
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseDeveloperExceptionPage();
 }
-
-app.UseHttpsRedirection();
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 app.UseRequestLocalization("es-AR");
 app.UseRouting();
 

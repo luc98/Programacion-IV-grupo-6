@@ -139,7 +139,10 @@ services:
     image: availability-web:local
     container_name: availability_web
     environment:
-      Keycloak__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      ASPNETCORE_ENVIRONMENT: Development
+      Keycloak__Authority: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Keycloak__MetadataAddress: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/.well-known/openid-configuration
+      Keycloak__RequireHttpsMetadata: "false"
       KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       KeycloakService__ClientSecret: ${AVAILABILITY_CLIENT_SECRET:-**********}
       Booking__BaseUrl: http://booking:8080/
