@@ -1,6 +1,7 @@
 using System.Text;
 using NotificationService.Core;
 using NotificationService.Messaging;
+using NotificationService.Security;
 
 namespace NotificationService.Http;
 
@@ -11,9 +12,14 @@ public static class NotificationEndpoint
     public const string Route = "/api/notifications";
     public const int MaxBodyBytes = 64 * 1024;
 
-    public static IEndpointRouteBuilder MapNotificationEndpoint(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapNotificationEndpoint(this IEndpointRouteBuilder endpoints, bool requireAuthorization = false)
     {
-        endpoints.MapPost(Route, ReceiveAsync);
+        var route = endpoints.MapPost(Route, ReceiveAsync);
+        if (requireAuthorization)
+        {
+            route.RequireAuthorization(AuthenticationExtensions.PolicyName);
+        }
+
         return endpoints;
     }
 
