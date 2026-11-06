@@ -504,30 +504,6 @@
   "webAuthnPolicyPasswordlessExtraOrigins": [],
   "users": [
     {
-      "id": "d0000000-0000-4000-8000-000000000001",
-      "username": "usuario-demo",
-      "firstName": "Usuario",
-      "lastName": "Demo",
-      "email": "usuario-demo@example.com",
-      "emailVerified": true,
-      "enabled": true,
-      "credentials": [
-        { "type": "password", "value": "demo1234", "temporary": false }
-      ]
-    },
-    {
-      "id": "d0000000-0000-4000-8000-000000000002",
-      "username": "usuario-sin-fondos",
-      "firstName": "Usuario",
-      "lastName": "Sin Fondos",
-      "email": "usuario-sin-fondos@example.com",
-      "emailVerified": true,
-      "enabled": true,
-      "credentials": [
-        { "type": "password", "value": "demo1234", "temporary": false }
-      ]
-    },
-    {
       "id": "57faf44a-be15-4397-9f76-87bedb1425f2",
       "username": "service-account-availability-api",
       "emailVerified": false,

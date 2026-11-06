@@ -37,14 +37,6 @@ public class AccountController : Controller
         return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
-    // Sin kc_idp_hint, Keycloak muestra su propia pantalla y se entra con un usuario del realm.
-    // Permite probar el sistema sin depender de Google, cuyo secreto no viaja con el repositorio.
-    [HttpPost]
-    public IActionResult LoginLocal(string? returnUrl = null) =>
-        Challenge(
-            new AuthenticationProperties { RedirectUri = LocalTarget(returnUrl) },
-            OpenIdConnectDefaults.AuthenticationScheme);
-
     [HttpPost]
     public IActionResult Logout()
     {

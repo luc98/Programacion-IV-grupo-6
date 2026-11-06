@@ -16,14 +16,4 @@
             </form>
         </div>
     </div>
-
-    <div class="card text-start mt-3">
-        <h2 class="card-header h6 mb-0">Cuenta de prueba</h2>
-        <div class="card-body">
-            <form asp-controller="Account" asp-action="LoginLocal" method="post">
-                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
-                <button type="submit" class="btn btn-outline-primary">Continuar con usuario y contraseña</button>
-            </form>
-        </div>
-    </div>
 </section>
