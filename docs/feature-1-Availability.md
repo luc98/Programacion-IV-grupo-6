@@ -906,33 +906,6 @@ La caída entre publicación y `MarkPublishedAsync` puede producir duplicados. N
 
 La cookie/OIDC del usuario se separa del token Client Credentials utilizado para Booking.
 
-## Limitaciones actuales
-
-- No se pudo validar MongoDB Atlas en la última ejecución disponible.
-- No se validó que la audiencia/roles del token de `availability-api` coincidan con Booking.
-- No se ejecutó una publicación real en Azure Service Bus.
-- No se ejecutó una consulta real a Booking.
-- No se completó el login real mediante Keycloak.
-- No se realizó una prueba E2E en navegador.
-- El listado de solicitudes consulta el estado de Booking individualmente por cada fila; puede producir varias llamadas HTTP.
-- El proyecto `AvailabilitySite.Application.Tests` referencia Web e Infrastructure para cubrir integraciones unitarias; esto no cambia la dirección de dependencias productivas, pero acopla el proyecto de pruebas a varias capas.
-
-## Riesgos
-
-1. Configuración incompleta puede impedir el arranque debido a `ValidateOnStart`.
-2. Un consumidor Booking no idempotente podría procesar duplicados del Outbox.
-3. Sin MongoDB replica set/Atlas compatible, la transacción solicitud + Outbox no funcionará como se espera.
-4. Sin coordinación de topic y subscription, el mensaje puede publicarse sin ser consumido.
-
-## Mejoras futuras no implementadas
-
-- Pruebas E2E aisladas con datos de prueba.
-- Observabilidad distribuida y métricas del Outbox.
-- Optimización de consultas de estados en el listado.
-- Política operativa para reencolar mensajes `Failed`.
-
-Estas mejoras no deben considerarse parte de la funcionalidad actualmente implementada.
-
 
 
 
