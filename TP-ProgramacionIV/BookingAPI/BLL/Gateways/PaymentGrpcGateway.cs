@@ -44,32 +44,31 @@ namespace BookingAPI.BLL.Gateways
             _logger = logger;
         }
 
-        public async Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto)
+        public async Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto, string? traceId = null)
         {
             // [DUPLA 4 - TRACEID]: el TraceId de la cadena es el SolicitudId que generó Availability.
             // Se reutiliza en lugar de crear uno nuevo, así Payment loguea el mismo valor.
-            string traceId = reserva.SolicitudId.ToString();
+            string traceIdEfectivo = !string.IsNullOrWhiteSpace(traceId) ? traceId : reserva.SolicitudId.ToString();
             var cronometro = Stopwatch.StartNew();
             _logger.LogInformation(
                 "{Etapa} {Operacion} TraceId={TraceId} ReservaId={ReservaId} Monto={Monto}",
-                "Inicio", Operacion, traceId, reserva.ReservaId, monto);
+                "Inicio", Operacion, traceIdEfectivo, reserva.ReservaId, monto);
 
             ResultadoCobroDto resultado;
             try
             {
-                resultado = await CobrarAsync(reserva, monto, traceId);
+                resultado = await CobrarAsync(reserva, monto, traceIdEfectivo);
             }
             catch (Exception ex)
             {
-                // Resguardo final: pase lo que pase, el gateway no lanza
-                _logger.LogError(ex, "[gRPC] TraceId={TraceId} Falla inesperada al preparar el cobro", traceId);
+                _logger.LogError(ex, "[gRPC] TraceId={TraceId} Falla inesperada al preparar el cobro", traceIdEfectivo);
                 resultado = Caido("Error inesperado al preparar el cobro");
             }
 
             string estado = resultado.Exitoso ? "Aprobado" : resultado.ServicioCaido ? "PagoNoDisponible" : "PagoFallido";
             _logger.LogInformation(
                 "{Etapa} {Operacion} TraceId={TraceId} Resultado={Resultado} DuracionMs={DuracionMs}",
-                "Fin", Operacion, traceId, estado, cronometro.ElapsedMilliseconds);
+                "Fin", Operacion, traceIdEfectivo, estado, cronometro.ElapsedMilliseconds);
             return resultado;
         }
 

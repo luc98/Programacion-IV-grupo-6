@@ -468,7 +468,7 @@ internal sealed class FakePaymentGateway : IPaymentGateway
 
     public int CantidadCobros => _cantidadCobros;
 
-    public Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto)
+    public Task<ResultadoCobroDto> CobrarReservaAsync(Reserva reserva, decimal monto, string? traceId = null)
     {
         Interlocked.Increment(ref _cantidadCobros);
         return Task.FromResult(new ResultadoCobroDto

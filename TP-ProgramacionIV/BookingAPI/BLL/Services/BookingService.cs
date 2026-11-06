@@ -126,7 +126,7 @@ namespace BookingAPI.BLL.Services
                 decimal montoCobro = asiento.Precio;
 
                 // Hacemos el llamado a Payment gRPC para procesar el cobro
-                ResultadoCobroDto resultadoCobro = await _paymentGateway.CobrarReservaAsync(reserva, montoCobro);
+                ResultadoCobroDto resultadoCobro = await _paymentGateway.CobrarReservaAsync(reserva, montoCobro, traceId);
 
                 // Segun la respuesta del Payment gRPC, se actualiza el estado y motivo de la reserva
                 string resultadoFinal;
