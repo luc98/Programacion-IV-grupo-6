@@ -93,9 +93,13 @@ services:
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__Audience: booking-api
       Authentication__TokenUrl: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/protocol/openid-connect/token
+      Authentication__ClientSecret: ${BOOKING_CLIENT_SECRET:-**********}
       Authentication__RequireHttpsMetadata: "false"
       GrpcSettings__PaymentServiceUrl: http://payment:8080
       NotificationService__BaseUrl: http://notification-service:5050
+      AzureServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
+      AzureServiceBus__SolicitudesTopic: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
+      AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking-sub}
     ports:
       - "5156:8080"
     depends_on:
@@ -137,6 +141,7 @@ services:
     environment:
       Keycloak__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      KeycloakService__ClientSecret: ${AVAILABILITY_CLIENT_SECRET:-**********}
       Booking__BaseUrl: http://booking:8080/
       MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017}
       MongoDB__DatabaseName: AvailabilityDb
