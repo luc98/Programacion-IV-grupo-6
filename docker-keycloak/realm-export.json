@@ -943,6 +943,19 @@
             "access.token.claim": "true",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "aud-notifications-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "notifications-api",
+            "id.token.claim": "false",
+            "lightweight.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
         }
       ]
     },

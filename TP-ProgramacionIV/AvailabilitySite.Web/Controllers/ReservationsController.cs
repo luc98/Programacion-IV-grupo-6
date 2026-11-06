@@ -17,7 +17,8 @@ public class ReservationsController(
     IRequestReservationUseCase requestReservation,
     IGetReservationRequestStatusUseCase getStatus,
     IListCurrentUserReservationRequestsUseCase listMine,
-    EventLookup lookup) : AppController
+    EventLookup lookup,
+    ILogger<ReservationsController> logger) : AppController
 {
     // ------------------------------------------------------------------ confirmación (GET)
 
@@ -50,8 +51,17 @@ public class ReservationsController(
         if (!ModelState.IsValid)
             return await ConfirmView(input, SubmissionProblem.None, null, cancellationToken);
 
+        // Log de auditoría (3.f): acá empieza la cadena. El TraceId es el id de la solicitud, que recién
+        // existe al registrarla, por eso el inicio se identifica con la clave de idempotencia.
+        var cronometro = System.Diagnostics.Stopwatch.StartNew();
+        logger.LogInformation("Inicio SolicitarReserva IdempotencyKey={IdempotencyKey} AsientoId={AsientoId}", input.IdempotencyKey, input.SeatId);
+
         var result = await requestReservation.ExecuteAsync(
             new CreateReservationRequestDto(input.EventId.Value, input.SeatId!.Value, input.IdempotencyKey!), cancellationToken);
+
+        logger.LogInformation(
+            "Fin SolicitarReserva IdempotencyKey={IdempotencyKey} TraceId={TraceId} Resultado={Resultado} DuracionMs={DuracionMs}",
+            input.IdempotencyKey, result.Value?.RequestId, result.IsSuccess ? "Recibida" : result.Error!.Code, cronometro.ElapsedMilliseconds);
 
         if (result.IsSuccess)
         {

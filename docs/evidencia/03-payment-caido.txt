@@ -1,0 +1,25 @@
+# Payment caído: se rechaza con PagoNoDisponible y Booking sigue vivo
+# TraceId: 2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43
+
+=== booking
+03:34:05 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Inicio ProcesarMensaje TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 SolicitudId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 SequenceNu
+03:34:05 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Inicio ProcesarSolicitudReserva TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 SolicitudId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 A
+03:34:05 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] [NOTIFICATION SERVICE - HTTP] Notificación 'ReservaCreada' enviada exitosamente. TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 
+03:34:05 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Inicio CobrarReserva TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 ReservaId=17c43541-c5d6-467e-87ca-4cb4c6c277b5 Monto=15000.00
+03:34:07 WRN [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] [POLLY] TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Reintento 1 a Payment en 593 ms. Causa: timeout del intento
+03:34:09 ERR [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] [POLLY] TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Circuito ABIERTO: Payment viene fallando. Se rechazan los cobros sin llama
+03:34:09 WRN [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] [POLLY] TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Reintento 2 a Payment en 201 ms. Causa: gRPC Unavailable
+03:34:09 WRN [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] [POLLY] TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Circuito abierto: no se hacen más intentos a Payment
+03:34:09 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Fin CobrarReserva TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Resultado=PagoNoDisponible DuracionMs=4179
+03:34:09 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Fin ProcesarSolicitudReserva TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 SolicitudId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Rese
+03:34:09 INF [BookingAPI] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Fin ProcesarMensaje TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 SolicitudId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43 Resultado=Com
+
+=== payment
+
+=== notification-service
+03:34:05 INF [NotificationService] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Inicio ProcesarMensaje
+03:34:05 INF [NotificationService] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] AVISO para usuario-prueba: Tu reserva 17c43541-c5d6-467e-87ca-4cb4c6c277b5 quedó retenida hasta 2026-11-06T03:39:05.1
+03:34:05 INF [NotificationService] [TraceId=2e51fcc9-37e5-4c6a-8f2c-a6cb73349b43] Fin ProcesarMensaje Resultado=Completed DuracionMs=0
+
+=== estado final en Booking
+Rechazada / PagoNoDisponible

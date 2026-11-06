@@ -55,7 +55,13 @@ public sealed class OutboxBackgroundService(
         {
             var requested = JsonSerializer.Deserialize<ReservationRequestedMessage>(message.Payload)
                 ?? throw new JsonException("El payload del Outbox está vacío.");
+            // Log de auditoría (3.f): inicio y fin de la publicación, con el TraceId de la cadena.
+            logger.LogInformation("Inicio PublicarSolicitud TraceId={TraceId}", requested.SolicitudId);
+            var cronometro = System.Diagnostics.Stopwatch.StartNew();
             await publisher.PublishAsync(requested, processingCancellation.Token);
+            logger.LogInformation(
+                "Fin PublicarSolicitud TraceId={TraceId} Resultado=Publicado DuracionMs={DuracionMs}",
+                requested.SolicitudId, cronometro.ElapsedMilliseconds);
             processingCancellation.Cancel();
             await renewalTask;
             if (leaseLost == 1)

@@ -1,0 +1,22 @@
+# Notificaciones caídas: la reserva se confirma igual
+# TraceId: 5d7aebb4-0ba4-42b3-b70a-6e31661e6278
+
+=== booking
+03:34:38 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Inicio ProcesarMensaje TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 SolicitudId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 SequenceNu
+03:34:38 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Inicio ProcesarSolicitudReserva TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 SolicitudId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 A
+03:34:40 WRN [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] [NOTIFICATION SERVICE - HTTP] No fue posible enviar notificación 'ReservaCreada' a Notification Service (servicio caído o tim
+03:34:40 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Inicio CobrarReserva TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 ReservaId=a7bc9b9f-d485-4251-ac2d-4cd45d69ca1e Monto=15000.00
+03:34:40 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Fin CobrarReserva TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 Resultado=Aprobado DuracionMs=591
+03:34:42 WRN [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] [NOTIFICATION SERVICE - HTTP] No fue posible enviar notificación 'ReservaConfirmada' a Notification Service (servicio caído o
+03:34:42 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Fin ProcesarSolicitudReserva TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 SolicitudId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 Rese
+03:34:43 INF [BookingAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Fin ProcesarMensaje TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 SolicitudId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278 Resultado=Com
+
+=== payment
+03:34:40 INF [PaymentAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Inicio /payment.v1.PaymentService/ProcesarPago
+03:34:40 INF [PaymentAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Pago c5a24536-5d6b-4590-81a5-7c53950a214b registrado para la reserva a7bc9b9f-d485-4251-ac2d-4cd45d69ca1e: Aprobado
+03:34:40 INF [PaymentAPI] [TraceId=5d7aebb4-0ba4-42b3-b70a-6e31661e6278] Fin /payment.v1.PaymentService/ProcesarPago Resultado=OK DuracionMs=403
+
+=== notification-service
+
+=== estado final en Booking
+Confirmada / Ninguno

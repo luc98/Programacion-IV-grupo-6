@@ -1,0 +1,11 @@
+# Concurrencia: 6 solicitudes simultáneas al asiento A-03 con 2 réplicas de Booking
+67b06a3e-2953-4ef4-bae4-ade4213f1f87 -> Rechazada / AsientoOcupado
+225140ec-cdbd-496a-9f09-59ab36fb37ef -> Rechazada / AsientoOcupado
+1ec5f9db-4ff7-404d-9426-b720f39c446d -> Confirmada / Ninguno
+0f821eb4-1a57-4f06-8b4f-f39301161890 -> Rechazada / AsientoOcupado
+a2101597-3c3e-404f-aa80-68f34bc97bfd -> Rechazada / AsientoOcupado
+f89c04bf-3769-4349-bc3d-40a81a6c56dc -> Rechazada / AsientoOcupado
+
+Solicitudes procesadas por réplica:
+premain-booking-2: 3
+premain-booking-1: 7

@@ -1,3 +1,6 @@
+# Sistema completo. Booking no publica puerto ni fija su contenedor para poder usar dos réplicas:
+#   docker compose -f docker-keycloak-booking-payment.yaml up -d --build --scale booking=2
+
 services:
   # --- INFRAESTRUCTURA DE SEGURIDAD Authorization Server ---
   keycloak-db:
@@ -116,7 +119,6 @@ services:
       context: ./TP-ProgramacionIV
       dockerfile: BookingAPI/Dockerfile
     image: booking-api:local
-    container_name: booking_api
     environment:
       ConnectionStrings__BookingDb: Host=booking-db;Port=5432;Database=BookingDb;Username=postgres;Password=postgrespassword
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
@@ -129,8 +131,6 @@ services:
       AzureServiceBus__ConnectionString: ${AZURE_SERVICE_BUS_CONNECTION_STRING:-}
       AzureServiceBus__SolicitudesTopic: ${AZURE_SERVICE_BUS_TOPIC:-grupo6-booking-topic}
       AzureServiceBus__SolicitudesSubscription: ${AZURE_SERVICE_BUS_SUBSCRIPTION:-booking}
-    ports:
-      - "5156:8080"
     depends_on:
       booking-db:
         condition: service_healthy
@@ -149,11 +149,12 @@ services:
     environment:
       ConnectionStrings__PaymentDb: Host=payment-db;Port=5432;Database=PaymentDb;Username=payment;Password=${PAYMENT_DB_PASSWORD:-payment-dev};GSS Encryption Mode=Disable
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-#     Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-      Authentication__ValidIssuer: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__RequireHttpsMetadata: "false"
-      Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-false}
+      Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-true}
       BancoSimulado__RetardoMs: ${PAYMENT_RETARDO_MS:-0}
+      # Con 20.000 se confirma la Conferencia (15.000) y el Recital (22.000) da pago fallido.
+      BancoSimulado__LimitePorCobroCentavos: ${PAYMENT_LIMITE_CENTAVOS:-2000000}
     ports:
       - "127.0.0.1:5260:8080"
     depends_on:
@@ -199,8 +200,18 @@ services:
     build: ./TP-ProgramacionIV/NotificationService
     image: notification-service:local
     container_name: notification_service
+    environment:
+      # Punto 3.e: solo acepta avisos con un token de Keycloak emitido para Booking.
+      Authentication__Enabled: "true"
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidateAudience: "true"
+      Authentication__RequireHttpsMetadata: "false"
     ports:
       - "127.0.0.1:5050:5050"
+    depends_on:
+      keycloak:
+        condition: service_healthy
     networks:
       - booking_network
     restart: unless-stopped

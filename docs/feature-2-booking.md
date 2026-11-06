@@ -20,7 +20,7 @@ El microservicio **Booking REST API** es el núcleo transaccional del sistema di
 
 ## 2. Diagrama de Arquitectura Global y N-Layer
 
-El diagrama editable se encuentra disponible en formato Draw.io en [`docs/booking-api-architecture.drawio`](./booking-api-architecture.drawio).
+El diagrama editable se encuentra disponible en formato Draw.io en [`docs/diagramas/booking-api-rest.drawio`](./diagramas/booking-api-rest.drawio).
 
 ### Diagrama Mermaid de Arquitectura en Capas
 
@@ -90,10 +90,8 @@ El proyecto sigue una estricta separación de responsabilidades:
 
 ### 3.1. Presentation Layer (`BookingAPI.Presentation`)
 * **`Controllers/ReservasController.cs`**: Endpoints REST protegidos con Keycloak (`[Authorize]`) para auditoría y consulta de estados:
-  * `GET /api/reservas/{id}`
-  * `GET /api/reservas/solicitud/{solicitudId}`
-  * `GET /api/reservas/usuario/{usuarioId}`
-  * `POST /api/reservas/cancelar/{id}`
+  * `GET /api/reservas/solicitudes/{solicitudId}`
+  * `GET /api/reservas/eventos/{eventoId}/asientos-ocupados`
 * **`Listeners/ServiceBusListener.cs`**: `BackgroundService` que escucha de manera dual (Tópico/Suscripción en Azure, o Cola en desarrollo). Implementa confirmación manual:
   * `CompleteMessageAsync()`: Cuando el mensaje se procesó e insertó con éxito (incluso si resultó rechazada por negocio).
   * `AbandonMessageAsync()`: Ante fallas de infraestructura para permitir reentrega.
@@ -236,24 +234,8 @@ Desde la raíz del repositorio (`Programacion-IV-grupo-6`):
 docker build -f TP-ProgramacionIV/BookingAPI/Dockerfile -t booking-api:local TP-ProgramacionIV
 ```
 
-### Integración en `docker-compose.yml`
-```yaml
-services:
-  booking-api:
-    build:
-      context: ./TP-ProgramacionIV
-      dockerfile: BookingAPI/Dockerfile
-    image: booking-api:local
-    ports:
-      - "5156:8080"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__BookingDb=Host=postgres;Port=5432;Database=BookingDb;Username=postgres;Password=postgrespassword
-      - GrpcSettings__PaymentServiceUrl=http://payment-service:5260
-      - NotificationService__BaseUrl=http://notification-service:5050
-    depends_on:
-      - postgres
-```
+### Integración en el compose del sistema
+Booking se levanta con el resto de los servicios desde `docker-keycloak-booking-payment.yaml`. No publica puerto ni fija el nombre del contenedor, para poder correr dos réplicas.
 
 ---
 
