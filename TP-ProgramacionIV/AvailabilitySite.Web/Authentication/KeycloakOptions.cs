@@ -8,4 +8,6 @@ public sealed class KeycloakOptions
     public string ClientId { get; set; } = string.Empty;
     public string CallbackPath { get; set; } = "/signin-oidc";
     public string SignedOutCallbackPath { get; set; } = "/signout-callback-oidc";
+    public bool RequireHttpsMetadata { get; set; }
+    public string? MetadataAddress { get; set; }
 }

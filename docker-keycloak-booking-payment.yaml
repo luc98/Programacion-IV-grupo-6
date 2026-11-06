@@ -122,6 +122,7 @@ services:
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__Audience: booking-api
       Authentication__TokenUrl: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/protocol/openid-connect/token
+      Authentication__ClientSecret: ${BOOKING_CLIENT_SECRET:-**********}
       Authentication__RequireHttpsMetadata: "false"
       GrpcSettings__PaymentServiceUrl: http://payment:8080
       NotificationService__BaseUrl: http://notification-service:5050
@@ -169,11 +170,12 @@ services:
     image: availability-web:local
     container_name: availability_web
     environment:
-      # Development permite el discovery de Keycloak por HTTP y carga los datos de demostración.
       ASPNETCORE_ENVIRONMENT: Development
-      Keycloak__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Keycloak__Authority: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Keycloak__MetadataAddress: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}/.well-known/openid-configuration
+      Keycloak__RequireHttpsMetadata: "false"
       KeycloakService__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-      KeycloakService__ClientSecret: ${AVAILABILITY_API_CLIENT_SECRET:-**********}
+      KeycloakService__ClientSecret: ${AVAILABILITY_CLIENT_SECRET:-**********}
       Booking__BaseUrl: http://booking:8080/
       MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://mongo-db:27017/?replicaSet=rs0}
       MongoDB__DatabaseName: AvailabilityDb
