@@ -33,6 +33,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Contrato compartido con Payment: un solo .proto en TP-ProgramacionIV/Protos.
+         Booking genera solo el cliente. -->
+    <Protobuf Include="..\Protos\payment\v1\payment.proto"
+              GrpcServices="Client"
+              Link="BLL\Protos\payment.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="BLL\DTOs\" />
     <Folder Include="BLL\Interfaces\" />
     <Folder Include="BLL\Gateways\" />
