@@ -71,7 +71,9 @@ builder.Services.AddAuthentication(options =>
         options.Scope.Add("email");
     });
 
-builder.Services.AddAvailabilityInfrastructure(builder.Configuration);
+builder.Services.AddAvailabilityInfrastructure(
+    builder.Configuration,
+    builder.Environment);
 builder.Services.AddAvailabilityApplication();
 builder.AddAvailabilityPresentation();
 

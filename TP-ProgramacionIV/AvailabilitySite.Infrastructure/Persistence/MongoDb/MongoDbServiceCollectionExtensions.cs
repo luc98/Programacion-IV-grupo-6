@@ -10,7 +10,10 @@ namespace AvailabilitySite.Infrastructure.Persistence.MongoDb;
 public static class MongoDbServiceCollectionExtensions
 {
     // Conexión, contexto, índices y repositorios reales de MongoDB.
-    public static IServiceCollection AddAvailabilityMongoDb(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAvailabilityMongoDb(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool enableDevelopmentDataSeeding = false)
     {
         services.AddOptions<MongoDbOptions>()
             .Bind(configuration.GetSection(MongoDbOptions.SectionName))
@@ -30,6 +33,13 @@ public static class MongoDbServiceCollectionExtensions
         services.AddSingleton<MongoDbContext>();
         services.AddSingleton<MongoIndexInitializer>();
         services.AddHostedService<MongoIndexInitializerHostedService>();
+
+        if (enableDevelopmentDataSeeding)
+        {
+            services.AddSingleton<MongoDevelopmentDataSeeder>();
+            services.AddHostedService<MongoDevelopmentDataSeederHostedService>();
+        }
+
         services.AddSingleton(TimeProvider.System);
 
         services.AddScoped<MongoAvailabilityQueryRepository>();

@@ -58,5 +58,32 @@ public sealed class MongoDependencyInjectionTests(MongoTestFixture fixture)
         Assert.Contains("MongoDB:ConnectionString", error.Message);
         Assert.Equal("AvailabilityDb", new MongoDbOptions().DatabaseName);
     }
+
+    [Fact]
+    public void AddAvailabilityMongoDb_ProductionDoesNotRegisterDevelopmentSeeder()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var descriptors = new ServiceCollection().AddAvailabilityMongoDb(configuration).ToArray();
+
+        Assert.DoesNotContain(
+            descriptors,
+            descriptor => descriptor.ImplementationType?.Name == "MongoDevelopmentDataSeederHostedService");
+        Assert.Contains(
+            descriptors,
+            descriptor => descriptor.ImplementationType?.Name == "MongoIndexInitializerHostedService");
+    }
+
+    [Fact]
+    public void AddAvailabilityMongoDb_DevelopmentRegistersDevelopmentSeeder()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var descriptors = new ServiceCollection()
+            .AddAvailabilityMongoDb(configuration, enableDevelopmentDataSeeding: true)
+            .ToArray();
+
+        Assert.Contains(
+            descriptors,
+            descriptor => descriptor.ImplementationType?.Name == "MongoDevelopmentDataSeederHostedService");
+    }
 }
 

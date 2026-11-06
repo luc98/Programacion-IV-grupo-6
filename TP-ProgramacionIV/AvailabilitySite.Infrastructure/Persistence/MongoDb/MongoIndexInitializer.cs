@@ -4,8 +4,8 @@ using MongoDB.Driver;
 
 namespace AvailabilitySite.Infrastructure.Persistence.MongoDb;
 
-// Crea los índices y siembra datos iniciales al arrancar la aplicación si las colecciones están vacías.
-// Es idempotente: si ya existen índices o datos, no hace nada.
+// Crea los índices de MongoDB al arrancar la aplicación.
+// El seeding de datos de prueba está separado y se registra únicamente en Development.
 public sealed class MongoIndexInitializer(MongoDbContext context)
 {
     public const string SeatsByEvent = "ux_seats_event_seat";
@@ -49,54 +49,7 @@ public sealed class MongoIndexInitializer(MongoDbContext context)
                 ],
                 cancellationToken);
 
-            await SeedDatosInicialesAsync(cancellationToken);
         });
-
-    private async Task SeedDatosInicialesAsync(CancellationToken cancellationToken)
-    {
-        var evento1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var evento2Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
-
-        var countEventos = await context.Events.CountDocumentsAsync(_ => true, cancellationToken: cancellationToken);
-        if (countEventos == 0)
-        {
-            var eventos = new[]
-            {
-                new EventDocument
-                {
-                    EventId = evento1Id,
-                    Name = "Conferencia de prueba",
-                    Venue = "Auditorio Central",
-                    StartsAt = new DateTime(2026, 12, 10, 22, 0, 0, DateTimeKind.Utc)
-                },
-                new EventDocument
-                {
-                    EventId = evento2Id,
-                    Name = "Recital de prueba",
-                    Venue = "Estadio Principal",
-                    StartsAt = new DateTime(2026, 12, 18, 23, 30, 0, DateTimeKind.Utc)
-                }
-            };
-
-            await context.Events.InsertManyAsync(eventos, cancellationToken: cancellationToken);
-        }
-
-        var countSeats = await context.Seats.CountDocumentsAsync(_ => true, cancellationToken: cancellationToken);
-        if (countSeats == 0)
-        {
-            var asientos = new[]
-            {
-                new SeatDocument { SeatId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"), EventId = evento1Id, Label = "A-01", IsAvailable = true },
-                new SeatDocument { SeatId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"), EventId = evento1Id, Label = "A-02", IsAvailable = true },
-                new SeatDocument { SeatId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3"), EventId = evento1Id, Label = "A-03", IsAvailable = true },
-                new SeatDocument { SeatId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4"), EventId = evento1Id, Label = "A-04", IsAvailable = true },
-                new SeatDocument { SeatId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"), EventId = evento2Id, Label = "B-01", IsAvailable = true },
-                new SeatDocument { SeatId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"), EventId = evento2Id, Label = "B-02", IsAvailable = true }
-            };
-
-            await context.Seats.InsertManyAsync(asientos, cancellationToken: cancellationToken);
-        }
-    }
 }
 
 internal sealed class MongoIndexInitializerHostedService(MongoIndexInitializer initializer) : IHostedService
