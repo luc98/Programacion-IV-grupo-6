@@ -114,7 +114,8 @@ services:
     environment:
       ConnectionStrings__PaymentDb: Host=payment-db;Port=5432;Database=PaymentDb;Username=payment;Password=${PAYMENT_DB_PASSWORD:-payment-dev};GSS Encryption Mode=Disable
       Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
-      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+#     Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__RequireHttpsMetadata: "false"
       Authentication__ValidateAudience: ${PAYMENT_VALIDATE_AUDIENCE:-false}
       BancoSimulado__RetardoMs: ${PAYMENT_RETARDO_MS:-0}
