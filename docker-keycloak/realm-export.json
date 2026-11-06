@@ -929,6 +929,21 @@
         "offline_access",
         "organization",
         "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "aud-payment-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "payment-api",
+            "id.token.claim": "false",
+            "lightweight.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
       ]
     },
     {
