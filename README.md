@@ -22,6 +22,9 @@ KEYCLOAK_REALM=reservas-realm
 PAYMENT_DB_PASSWORD=payment-dev
 PAYMENT_VALIDATE_AUDIENCE=false
 PAYMENT_RETARDO_MS=0
+
+# Google: inicio de sesión con cuenta de Google en Keycloak
+GOOGLE_CLIENT_SECRET=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
 ```
 
 2. Ejecutar desde la raíz:
@@ -84,6 +87,7 @@ Con el Keycloak de este repositorio, `ClientSecret` debe ser `**********` en Ava
 | `PAYMENT_DB_PASSWORD` | `.env` |
 | `PAYMENT_VALIDATE_AUDIENCE` | `.env` |
 | `PAYMENT_RETARDO_MS` | `.env` |
+| `GOOGLE_CLIENT_SECRET` | `.env` |
 
 ## Documentación
 
