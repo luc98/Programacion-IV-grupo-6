@@ -12,7 +12,7 @@ Corresponde al punto 3.h del trabajo práctico (Grupo 6, dupla 4). El profesor i
 | Traducción del evento y plantillas por configuración | Envío real del aviso (mail o push): hoy sale por consola |
 | Descarte de duplicados | Almacén compartido de avisos ya enviados (hoy es memoria) |
 | Logs con Serilog, `TraceId` y auditoría de inicio y fin | |
-| Pruebas (54), Dockerfile y prueba de humo con Docker | Sumar el servicio al Compose del grupo (`docker-keycloak-booking-payment.yaml`), a cargo de luc98 |
+| Pruebas (54), Dockerfile y prueba de humo con Docker | |
 
 ## Cómo funciona
 
@@ -147,7 +147,7 @@ Desde la raíz del repositorio:
 
 ```bash
 dotnet run --project TP-ProgramacionIV/NotificationService
-dotnet test TP-ProgramacionIV/NotificationService.slnx
+dotnet test TP-ProgramacionIV/NotificationService.Tests/NotificationService.Tests.csproj
 ```
 
 Con Docker:
