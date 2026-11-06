@@ -46,8 +46,8 @@ services:
       ConnectionStrings__PaymentDb: Host=payment-db;Port=5432;Database=PaymentDb;Username=payment;Password=${PAYMENT_DB_PASSWORD:-payment-dev};GSS Encryption Mode=Disable
       # Las claves del realm se bajan por la red interna; el emisor es el que
       # figura en los tokens (KC_HOSTNAME=http://localhost:8080 en el compose del grupo).
-      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-booking-realm}
-      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-booking-realm}
+      Authentication__Authority: http://keycloak:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
+      Authentication__ValidIssuer: http://localhost:8080/realms/${KEYCLOAK_REALM:-reservas-realm}
       Authentication__RequireHttpsMetadata: "false"
       # false mientras el realm del grupo no tenga el mapper de audiencia payment-api
       # en el cliente booking-api: hoy sus tokens salen sin aud. Payment lo avisa en
