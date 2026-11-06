@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="BLL\Protos\**" />
+    <Content Remove="BLL\Protos\**" />
+    <EmbeddedResource Remove="BLL\Protos\**" />
+    <None Remove="BLL\Protos\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.21.0" />
     <PackageReference Include="Google.Protobuf" Version="3.36.2" />
     <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
@@ -26,17 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Contrato compartido con Payment: un solo .proto en TP-ProgramacionIV/Protos.
-         Booking genera solo el cliente. -->
-    <Protobuf Include="..\Protos\payment\v1\payment.proto" GrpcServices="Client" Link="BLL\Protos\payment.proto" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="BLL\DTOs\" />
     <Folder Include="BLL\Interfaces\" />
     <Folder Include="BLL\Gateways\" />
     <Folder Include="BLL\Jobs\" />
-    <Folder Include="BLL\Protos\" />
     <Folder Include="BLL\Services\" />
     <Folder Include="DAL\Context\" />
     <Folder Include="DAL\Repositories\" />

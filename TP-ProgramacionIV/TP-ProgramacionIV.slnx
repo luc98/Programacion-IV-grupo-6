@@ -7,6 +7,7 @@
   <Project Path="AvailabilitySite.Infrastructure.IntegrationTests/AvailabilitySite.Infrastructure.IntegrationTests.csproj" />
   <Project Path="BookingAPI.Tests/BookingAPI.Tests.csproj" />
   <Project Path="BookingAPI/BookingAPI.csproj" />
+  <Project Path="BookingAPI.ConcurrencyTests/BookingAPI.ConcurrencyTests.csproj" />
   <Project Path="DemoResiliencia/DemoResiliencia.csproj" />
   <Project Path="NotificationService.Tests/NotificationService.Tests.csproj" />
   <Project Path="NotificationService/NotificationService.csproj" />
