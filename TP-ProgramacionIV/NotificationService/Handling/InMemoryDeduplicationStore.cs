@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 
 namespace NotificationService.Handling;
 
+// [JUSTIFICACIÓN - Concurrencia] TryAdd reserva la clave de forma atómica: dos llamadas iguales a la vez avisan una sola vez.
+// Olvida todo al reiniciar y alcanza para una sola instancia.
 public sealed class InMemoryDeduplicationStore : IDeduplicationStore
 {
     private readonly ConcurrentDictionary<string, byte> _reserved = new();

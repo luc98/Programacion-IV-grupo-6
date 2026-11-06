@@ -1,5 +1,6 @@
 namespace NotificationService.Core;
 
+// [JUSTIFICACIÓN - Resultado explícito] En lugar de excepciones, cada caso (Completed, Retry, Rejected) lleva su motivo para poder explicar qué pasó.
 public sealed record ProcessingResult(ProcessingOutcome Outcome, string? Reason = null)
 {
     public static ProcessingResult Completed() => new(ProcessingOutcome.Completed);
